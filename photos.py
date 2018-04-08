@@ -47,6 +47,7 @@ def parse_photo_name(photo):
         d = parsed.named
         if 'rest' in d:
             d['rest'] = d['rest'].replace('-', ' ')
+        d['date'] = dateutil.parser.parse(d['date'])
         return d
 
 
@@ -71,12 +72,15 @@ def parse_photo_info(photo_info):
     flag = emoji.emojize(f':{flag}:')
 
     # Add two random emojis, the date, and the location info with flag emoji
-    date = "{:%d %B %Y}".format(dateutil.parser.parse(photo_info['date']))
+    date = "{:%d %B %Y}".format(photo_info['date'])
+    city = photo_info["city"]
     caption = random_emoji() + random_emoji() + 3 * ' '
-    caption += f'Taken in {country}, {photo_info["city"]} {flag} on {date}.'
+    caption += f'Taken in {country}, {city} {flag} on {date}. '
 
     # Advertize the Python script
-    caption += '  #instacron ' + emoji.emojize(':snake:') + ' www.instacron.nijho.lt'
+    hashtags = ['instacron', country.lower(), city.lower().replace(' ', '')]
+    caption += ' '.join('#' + h for h in hashtags)
+    caption += emoji.emojize(':snake:') + ' www.instacron.nijho.lt'
 
     return caption
 
