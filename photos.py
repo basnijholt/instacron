@@ -32,12 +32,9 @@ def get_all_photos(uploaded_file, photo_folder):
     return photos
 
 
-def choose_random_photo(uploaded_file, photo_folder, append_to_uploaded_file=True):
+def choose_random_photo(uploaded_file, photo_folder):
     photos = get_all_photos(uploaded_file, photo_folder)
     photo = random.choice(photos) # choose a random photo
-    if append_to_uploaded_file:
-        with open(uploaded_file, 'a') as f:
-            f.write(os.path.basename(photo) + '\n')
     return photo
 
 
@@ -79,15 +76,19 @@ def parse_photo_info(photo_info):
     caption += f'Taken in {country} {flag}, {photo_info["city"]} on {date}.'
 
     # Advertize the Python script
-    caption += '  #instacron ' + emoji.emojize(':snake:')
+    caption += '  #instacron ' + emoji.emojize(':snake:') + ' www.instacron.nijho.lt'
 
     return caption
 
 
+def append_to_uploaded_file(uploaded_file, photo):
+    with open(uploaded_file, 'a') as f:
+        f.write(os.path.basename(photo) + '\n')
+
+
 if __name__ == "__main__":
-    # instagram = InstagramAPI(*read_config())
-    # instagram.login()
-    # InstagramAPI.uploadPhoto(photo_path, caption=caption)
+    instagram = InstagramAPI(*read_config())
+    instagram.login()
     caption = get_random_quote()
     photo_folder = 'photos'
     uploaded_file = 'uploaded.txt'
@@ -95,4 +96,7 @@ if __name__ == "__main__":
     photo_info = parse_photo_name(os.path.basename(photo))
     if photo_info:
         caption += parse_photo_info(photo_info)
+    
+    InstagramAPI.uploadPhoto(photo_path, caption=caption)
+    append_to_uploaded_file(uploaded_file, photo)
     print(caption)
