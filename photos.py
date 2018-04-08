@@ -74,12 +74,12 @@ def parse_photo_info(photo_info):
     flag = emoji.emojize(f':{flag}:')
 
     # Add two random emojis, the date, and the location info with flag emoji
-    date = "{:%d %b %Y}".format(dateutil.parser.parse(photo_info['date']))
+    date = "{:%d %B %Y}".format(dateutil.parser.parse(photo_info['date']))
     caption = random_emoji() + random_emoji() + 3 * ' '
     caption += f'Taken in {country} {flag}, {photo_info["city"]} on {date}.'
 
     # Advertize the Python script
-    caption += '  #autoinstagram ' + emoji.emojize(':snake:')
+    caption += '  #instacron ' + emoji.emojize(':snake:')
 
     return caption
 
