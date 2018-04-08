@@ -13,8 +13,8 @@ from requests import get
 
 def read_config():
     # Read the config
-    with open(os.path.expanduser('~/.config/autoinstagram/config'), 'r') as f:
-        """Create a config file at ~/.config/autoinstagram/config with the
+    with open(os.path.expanduser('~/.config/instacron/config'), 'r') as f:
+        """Create a config file at ~/.config/instacron/config with the
         following information and structure:
             my_user_name
             my_difficult_password
@@ -73,7 +73,7 @@ def parse_photo_info(photo_info):
     # Add two random emojis, the date, and the location info with flag emoji
     date = "{:%d %B %Y}".format(dateutil.parser.parse(photo_info['date']))
     caption = random_emoji() + random_emoji() + 3 * ' '
-    caption += f'Taken in {country} {flag}, {photo_info["city"]} on {date}.'
+    caption += f'Taken in {country}, {photo_info["city"]} {flag} on {date}.'
 
     # Advertize the Python script
     caption += '  #instacron ' + emoji.emojize(':snake:') + ' www.instacron.nijho.lt'
@@ -86,9 +86,7 @@ def append_to_uploaded_file(uploaded_file, photo):
         f.write(os.path.basename(photo) + '\n')
 
 
-if __name__ == "__main__":
-    instagram = InstagramAPI(*read_config())
-    instagram.login()
+def main():
     caption = get_random_quote()
     photo_folder = 'photos'
     uploaded_file = 'uploaded.txt'
@@ -97,6 +95,15 @@ if __name__ == "__main__":
     if photo_info:
         caption += parse_photo_info(photo_info)
     
-    InstagramAPI.uploadPhoto(photo_path, caption=caption)
-    append_to_uploaded_file(uploaded_file, photo)
-    print(caption)
+    print(f'Uploading `{photo}` with caption:\n\n {caption}')
+
+    instagram = InstagramAPI(*read_config())
+    instagram.login()
+    upload = instagram.uploadPhoto(photo, caption=caption)
+    # After succeeding append the fname to the uploaded.txt file
+    if upload:
+        append_to_uploaded_file(uploaded_file, photo)
+
+
+if __name__ == "__main__":
+    main()
