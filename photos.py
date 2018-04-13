@@ -6,7 +6,7 @@ import random
 
 import dateutil.parser
 import emoji
-from InstagramAPI import InstagramAPI
+from instabot import Bot
 import parse
 from requests import get
 
@@ -20,7 +20,7 @@ def read_config():
             my_difficult_password
         """
         user, pw = [s.replace('\n', '') for s in f.readlines()]
-    return user, pw
+    return {'username': user, 'password': pw}
 
 
 def get_all_photos(uploaded_file, photo_folder):
@@ -101,9 +101,13 @@ def main():
     
     print(f'Uploading `{photo}` with caption:\n\n {caption}')
 
-    instagram = InstagramAPI(*read_config())
-    instagram.login()
-    upload = instagram.uploadPhoto(photo, caption=caption)
+    # instagram = InstagramAPI(*read_config())
+    bot = Bot()
+    bot.login(**read_config())
+
+    # instagram.login()
+    upload = bot.uploadPhoto(photo, caption=caption)
+    print(upload)
     # After succeeding append the fname to the uploaded.txt file
     if upload:
         append_to_uploaded_file(uploaded_file, photo)
