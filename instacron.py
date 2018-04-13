@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.6
 
 from glob import glob
 from json import loads
