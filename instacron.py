@@ -92,8 +92,9 @@ def append_to_uploaded_file(uploaded_file, photo):
 
 def main():
     caption = get_random_quote()
-    photo_folder = 'photos'
-    uploaded_file = 'uploaded.txt'
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    photo_folder = os.path.join(dir_path, 'photos')
+    uploaded_file = os.path.join(dir_path, 'uploaded.txt')
     photo = choose_random_photo(uploaded_file, photo_folder)
     photo_info = parse_photo_name(os.path.basename(photo))
     if photo_info:
