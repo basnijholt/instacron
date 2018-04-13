@@ -4,6 +4,7 @@ from glob import glob
 from json import loads
 import os.path
 import random
+import time
 
 import dateutil.parser
 import emoji
@@ -54,12 +55,21 @@ def parse_photo_name(photo):
             return d
 
 
-def get_random_quote():
+def _get_random_quote():
     response = get('http://api.forismatic.com/api/1.0/?method=getQuote&format=json&lang=en')
     response = loads(response.text)
     quote = response['quoteText']
     author = response['quoteAuthor']
     return quote
+
+
+def get_random_quote():
+    for _ in range(10):
+        try:
+            return _get_random_quote()
+        except Exception:
+            time.sleep(1)
+            pass
 
 
 def random_emoji():
