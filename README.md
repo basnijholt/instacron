@@ -8,6 +8,10 @@ Takes a random photo from the folder `photos` and adds a caption with a random q
 
 > I think and that is all that I am.  💔🤷   Taken in Peru, Cusco 🇵🇪 on 21 November 2015.  #instacron 🐍 www.instacron.nijho.lt
 
+
+### Why does this exist?
+I like to take [pictures](https://www.instagram.com/bnijholt/) that I would like to share with the world but I am way too lazy to upload them using the app.
+
 ### Installation
 You need Python≥3.6
 
