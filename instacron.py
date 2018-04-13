@@ -41,15 +41,17 @@ def choose_random_photo(uploaded_file, photo_folder):
 
 def parse_photo_name(photo):
     """All my photos are named like `854-20151121-Peru-Cusco.jpg`"""
-    parsed = parse.parse('{i}-{date}-{country}-{city}-{rest}.jpg', photo)
-    if parsed is None:
-        parsed = parse.parse('{i}-{date}-{country}-{city}.jpg', photo)
-    if parsed is not None:
-        d = parsed.named
-        if 'rest' in d:
-            d['rest'] = d['rest'].replace('-', ' ')
-        d['date'] = dateutil.parser.parse(d['date'])
-        return d
+    templates = ['{i}-{date}-{country}-{city}-{rest}.jpg',
+                 '{i}-{date}-{country}-{city}.jpg']
+    parsed = None
+    for template in templates:
+        parsed = parse.parse(template, photo)
+        if parsed is not None:
+            d = parsed.named
+            if 'rest' in d:
+                d['rest'] = d['rest'].replace('-', ' ')
+            d['date'] = dateutil.parser.parse(d['date'])
+            return d
 
 
 def get_random_quote():
