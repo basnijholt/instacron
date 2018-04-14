@@ -26,7 +26,7 @@ pip install -r requirements.txt
 ```
 
 ### Usage
-* Put photos in [`photos`](photos) (see the expected filename structuce [heres](photos).)
+* Put photos in [`photos`](photos) (see the expected filename structuce [here](photos).)
 * Create a config file at `~/.config/instacron/config` with the following information and structure:
 ```
 my_user_name
