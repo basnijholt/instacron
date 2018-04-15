@@ -35,3 +35,6 @@ my_difficult_password
 * run `python instacron.py`
 
 Alternatively setup a cronjob.
+
+### Troubleshooting
+See the [FAQ: Understanding Responses from Instagram](https://github.com/mgp25/Instagram-API/wiki/FAQ#understanding-responses-from-instagram) in the `mgp25/Instagram-API` repository for information about the error codes the Instagram API might return.
