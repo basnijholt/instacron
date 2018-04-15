@@ -42,7 +42,7 @@ def get_all_photos(uploaded_file, photo_folder):
     with open(uploaded_file) as f:
         uploaded = [line.rstrip() for line in f]
 
-    photos = glob(os.path.join(photo_folder, '*'))
+    photos = glob(os.path.join(photo_folder, '*.jpg'))
     photos = [photo for photo in photos if os.path.basename(photo) not in uploaded]
     return photos
 
