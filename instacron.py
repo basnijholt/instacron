@@ -15,13 +15,19 @@ from requests import get
 
 def read_config():
     # Read the config
-    with open(os.path.expanduser('~/.config/instacron/config'), 'r') as f:
-        """Create a config file at ~/.config/instacron/config with the
-        following information and structure:
-            my_user_name
-            my_difficult_password
-        """
-        user, pw = [s.replace('\n', '') for s in f.readlines()]
+    try:
+        with open(os.path.expanduser('~/.config/instacron/config'), 'r') as f:
+            """Create a config file at ~/.config/instacron/config with the
+            following information and structure:
+                my_user_name
+                my_difficult_password
+            """
+            user, pw = [s.replace('\n', '') for s in f.readlines()]
+    except Exception:
+        import getpass
+        print("Reading config file `~/.config/instacron/config` didn't work")
+        user = input('Enter username and hit enter\n')
+        pw = getpass.getpass('Enter password and hit enter\n')
     return {'username': user, 'password': pw}
 
 
@@ -115,17 +121,14 @@ def main():
     
     print(f'Uploading `{photo}` with caption:\n\n {caption}')
 
-    # instagram = InstagramAPI(*read_config())
     bot = Bot()
     bot.login(**read_config())
-
-    # instagram.login()
     upload = bot.uploadPhoto(photo, caption=caption)
     print(upload)
     # After succeeding append the fname to the uploaded.txt file
     if upload:
         append_to_uploaded_file(uploaded_file, photo)
-
+    bot.logout()
 
 if __name__ == "__main__":
     main()
