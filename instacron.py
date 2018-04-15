@@ -1,7 +1,9 @@
 #!/usr/bin/env python3.6
 
+from collections import Counter
 from glob import glob
 from json import loads
+import operator
 import os.path
 import random
 import tempfile
@@ -51,9 +53,9 @@ def get_all_photos(uploaded_file, photo_folder):
         uploaded = [line.rstrip() for line in f]
 
     photos = glob(os.path.join(photo_folder, '*.jpg'))
-    photos = [photo for photo in photos
-              if os.path.basename(photo) not in uploaded
-              and correct_ratio(photo)]
+    photos = photos_to_upload(photos, uploaded)
+    photos = [photo for photo in photos if correct_ratio(photo)]
+
     return photos
 
 
@@ -61,6 +63,42 @@ def choose_random_photo(uploaded_file, photo_folder):
     photos = get_all_photos(uploaded_file, photo_folder)
     photo = random.choice(photos) # choose a random photo
     return photo
+
+
+def photos_to_upload(photos, uploaded):
+    """Check which photos it can upload.
+
+    When all pictures in the photo folder have been uploaded
+    it starts to upload old pictures again."""
+
+    # Remove files from `uploaded` that are not present
+    # in `photos` any more.
+    photos_base = [os.path.basename(p) for p in photos]
+    uploaded = [p for p in uploaded if p in photos_base]
+
+    # Create a counter
+    counter = Counter(uploaded)
+    n_counts = sorted(set(counter.values()))
+    count_min = min(counter.values())
+    print(list(counter.items()))
+
+    if len(uploaded) >= count_min * len(photos):
+        # Photos all have been uploaded already
+        if len(n_counts) == 1:
+            # Every photo is uploaded the same amount of times
+            _photos = list(counter.keys())
+        elif len(n_counts) > 1:
+            # There are some photos uploaded N times, while other are
+            # uploaded N+1 times.
+
+            # Remove the photos with the lowest count and select
+            # the images with the second lowest count.
+            _photos = list({photo for photo, count in counter.items()
+                            if count == count_min})
+    else:
+        # Not all photos have been uploaded yet
+        _photos = [p for p in photos if os.path.basename(p) not in uploaded]
+    return _photos
 
 
 def parse_photo_name(photo):
