@@ -8,26 +8,26 @@ import time
 
 import dateutil.parser
 import emoji
-from instabot import Bot
+import instabot
 import parse
 from requests import get
 
 
-def read_config():
-    # Read the config
-    cfg = '~/.config/instacron/config'
+def read_config(cfg='~/.config/instacron/config'):
+    """Read the config.
+
+    Create a config file at `cfg` with the
+    following information and structure:
+        my_user_name
+        my_difficult_password
+    """
     _cfg = os.path.expanduser(cfg)
     try:
         with open(_cfg, 'r') as f:
-            """Create a config file at {cfg} with the
-            following information and structure:
-                my_user_name
-                my_difficult_password
-            """
             user, pw = [s.replace('\n', '') for s in f.readlines()]
     except Exception:
         import getpass
-        print(f"Reading config file `{cfg}` didn't work")
+        print(f"\nReading config file `{cfg}` didn't work")
         user = input('Enter username and hit enter\n')
         pw = getpass.getpass('Enter password and hit enter\n')
         save_config = input(f"Save to config file `{cfg}` (y/N)? ").lower() == 'y'
@@ -128,7 +128,7 @@ def main():
     
     print(f'Uploading `{photo}` with caption:\n\n {caption}')
 
-    bot = Bot()
+    bot = instabot.Bot()
     bot.login(**read_config())
     upload = bot.uploadPhoto(photo, caption=caption)
     print(upload)
