@@ -28,14 +28,9 @@ pip install -r requirements.txt
 
 ### Usage
 * Put photos in [`photos`](photos) (see the expected filename structuce [here](photos).)
-* Create a config file at `~/.config/instacron/config` with the following information and structure:
-```
-my_user_name
-my_difficult_password
-```
-* run `python instacron.py`
+* run `python instacron.py` and follow the instructions to have it set up a config file.
 
-Alternatively setup a cronjob.
+Alternatively setup a cronjob to periodically post a photo, see [cronjob.py](cronjob.py) for instructions.
 
 ### Troubleshooting
 See the [FAQ: Understanding Responses from Instagram](https://github.com/mgp25/Instagram-API/wiki/FAQ#understanding-responses-from-instagram) in the `mgp25/Instagram-API` repository for information about the error codes the Instagram API might return.
