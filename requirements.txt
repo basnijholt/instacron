@@ -5,3 +5,5 @@ emoji
 python-dateutil
 pillow
 termcolor
+scipy
+numpy
