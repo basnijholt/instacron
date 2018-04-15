@@ -102,3 +102,6 @@ ENV/
 
 # instacron files
 uploaded.txt
+
+# macOS related
+.DS_Store
