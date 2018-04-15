@@ -9,6 +9,7 @@ import time
 import dateutil.parser
 import emoji
 import instabot
+from instabot.api.api_photo import compatibleAspectRatio, getImageSize
 import parse
 from requests import get
 
@@ -38,12 +39,18 @@ def read_config(cfg='~/.config/instacron/config'):
     return {'username': user, 'password': pw}
 
 
+def correct_ratio(photo):
+    return compatibleAspectRatio(getImageSize(photo))
+
+
 def get_all_photos(uploaded_file, photo_folder):
     with open(uploaded_file) as f:
         uploaded = [line.rstrip() for line in f]
 
     photos = glob(os.path.join(photo_folder, '*.jpg'))
-    photos = [photo for photo in photos if os.path.basename(photo) not in uploaded]
+    photos = [photo for photo in photos
+              if os.path.basename(photo) not in uploaded
+              and correct_ratio(photo)]
     return photos
 
 
