@@ -16,7 +16,6 @@ from instabot.api.api_photo import compatibleAspectRatio, getImageSize
 import numpy as np
 import parse
 import PIL
-from PIL import Image
 from requests import get
 from scipy.optimize import minimize_scalar
 from termcolor import colored
@@ -208,10 +207,10 @@ def get_highest_entropy(photo, min_ratio=4/5, max_ratio=90/47):
 def strip_exif(photo):
     """Strip EXIF data from the photo to avoid a 500 error."""
     with open(photo, 'rb') as f:
-        image = Image.open(f)
+        image = PIL.Image.open(f)
         data = list(image.getdata())
 
-    image_without_exif = Image.new(image.mode, image.size)
+    image_without_exif = PIL.Image.new(image.mode, image.size)
     image_without_exif.putdata(data)
 
     tmp_folder = tempfile.gettempdir()
