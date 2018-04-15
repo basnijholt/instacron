@@ -11,6 +11,7 @@ import emoji
 import instabot
 from instabot.api.api_photo import compatibleAspectRatio, getImageSize
 import parse
+from PIL import Image
 from requests import get
 
 
@@ -118,6 +119,18 @@ def parse_photo_info(photo_info):
     return caption
 
 
+def strip_exif(photo, fname_new='/tmp/instacron.jpg'):
+    with open(photo, 'rb') as f:
+        image = Image.open(f)
+        data = list(image.getdata())
+
+    image_without_exif = Image.new(image.mode, image.size)
+    image_without_exif.putdata(data)
+
+    image_without_exif.save(fname_new)
+    return fname_new
+
+
 def append_to_uploaded_file(uploaded_file, photo):
     with open(uploaded_file, 'a') as f:
         f.write(os.path.basename(photo) + '\n')
@@ -137,7 +150,7 @@ def main():
 
     bot = instabot.Bot()
     bot.login(**read_config())
-    upload = bot.uploadPhoto(photo, caption=caption)
+    upload = bot.uploadPhoto(strip_exif(photo), caption=caption)
     print(upload)
     # After succeeding append the fname to the uploaded.txt file
     if upload:
