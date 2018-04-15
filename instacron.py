@@ -13,9 +13,12 @@ import dateutil.parser
 import emoji
 import instabot
 from instabot.api.api_photo import compatibleAspectRatio, getImageSize
+import numpy as np
 import parse
+import PIL
 from PIL import Image
 from requests import get
+from scipy.optimize import minimize_scalar
 from termcolor import colored
 
 
@@ -54,7 +57,6 @@ def get_all_photos(uploaded_file, photo_folder):
 
     photos = glob(os.path.join(photo_folder, '*.jpg'))
     photos = photos_to_upload(photos, uploaded)
-    photos = [photo for photo in photos if correct_ratio(photo)]
 
     return photos
 
@@ -159,6 +161,50 @@ def parse_photo_info(photo_info):
     return caption
 
 
+def fix_photo(photo):
+    photo = strip_exif(photo)
+    if not correct_ratio(photo):
+        img = get_highest_entropy(photo)
+        photo = os.path.join(tempfile.gettempdir(), 'instacron.jpg')
+        img.save(photo)
+    return photo
+
+
+def entropy(data):
+    """Calculate the entropy of an image"""
+    hist = np.array(PIL.Image.fromarray(data).histogram())
+    hist = hist / hist.sum()
+    hist = hist[hist != 0]
+    return -np.sum(hist * np.log2(hist))
+
+
+def crop(x, y, data, w, h):
+    x = int(x)
+    y = int(y)
+    return data[y:y+h, x:x+w]
+
+
+def get_highest_entropy(photo, min_ratio=4/5, max_ratio=90/47):
+    with open(photo, 'rb') as f:
+        img = np.array(PIL.Image.open(f))
+    w, h = getImageSize(photo)
+    ratio = w / h
+    if ratio > max_ratio:
+        # Too wide
+        w_max = int(max_ratio * h)
+        _crop = lambda x: crop(x, y=0, data=img, w=w_max, h=h)
+        xy_max = w - w_max
+    else:
+        # Too narrow
+        h_max = int(w / min_ratio)
+        _crop = lambda y: crop(x=0, y=y, data=img, w=w, h=h_max)
+        xy_max = h - h_max
+    x = minimize_scalar(lambda xy: -entropy(_crop(xy)),
+                        bounds=(0, xy_max),
+                        method='bounded').x
+    return PIL.Image.fromarray(_crop(x))
+
+
 def strip_exif(photo):
     """Strip EXIF data from the photo to avoid a 500 error."""
     with open(photo, 'rb') as f:
@@ -193,7 +239,7 @@ def main():
 
     bot = instabot.Bot()
     bot.login(**read_config())
-    upload = bot.uploadPhoto(strip_exif(photo), caption=caption)
+    upload = bot.uploadPhoto(fix_photo(photo), caption=caption)
     
     # After succeeding append the fname to the uploaded.txt file
     photo_base = os.path.basename(photo)
