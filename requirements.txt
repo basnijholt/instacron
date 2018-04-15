@@ -4,3 +4,4 @@ parse
 emoji
 python-dateutil
 pillow
+termcolor

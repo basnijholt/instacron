@@ -13,6 +13,7 @@ from instabot.api.api_photo import compatibleAspectRatio, getImageSize
 import parse
 from PIL import Image
 from requests import get
+from termcolor import colored
 
 
 def read_config(cfg='~/.config/instacron/config'):
@@ -133,7 +134,7 @@ def strip_exif(photo, fname_new='/tmp/instacron.jpg'):
 
 def append_to_uploaded_file(uploaded_file, photo):
     with open(uploaded_file, 'a') as f:
-        f.write(os.path.basename(photo) + '\n')
+        f.write(photo + '\n')
 
 
 def main():
@@ -151,10 +152,14 @@ def main():
     bot = instabot.Bot()
     bot.login(**read_config())
     upload = bot.uploadPhoto(strip_exif(photo), caption=caption)
-    print(upload)
+    
     # After succeeding append the fname to the uploaded.txt file
+    photo_base = os.path.basename(photo)
     if upload:
-        append_to_uploaded_file(uploaded_file, photo)
+        print(colored(f'Upload of {photo_base} succeeded.', 'green'))
+        append_to_uploaded_file(uploaded_file, photo_base)
+    else:
+        print(colored(f'Upload of {photo_base} failed.', 'red'))
     bot.logout()
 
 if __name__ == "__main__":
