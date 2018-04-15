@@ -15,9 +15,11 @@ from requests import get
 
 def read_config():
     # Read the config
+    cfg = '~/.config/instacron/config'
+    _cfg = os.path.expanduser(cfg)
     try:
-        with open(os.path.expanduser('~/.config/instacron/config'), 'r') as f:
-            """Create a config file at ~/.config/instacron/config with the
+        with open(_cfg, 'r') as f:
+            """Create a config file at {cfg} with the
             following information and structure:
                 my_user_name
                 my_difficult_password
@@ -25,9 +27,14 @@ def read_config():
             user, pw = [s.replace('\n', '') for s in f.readlines()]
     except Exception:
         import getpass
-        print("Reading config file `~/.config/instacron/config` didn't work")
+        print(f"Reading config file `{cfg}` didn't work")
         user = input('Enter username and hit enter\n')
         pw = getpass.getpass('Enter password and hit enter\n')
+        save_config = input(f"Save to config file `{cfg}` (y/N)? ").lower() == 'y'
+        if save_config:
+            os.makedirs(os.path.dirname(_cfg), exist_ok=True)
+            with open(_cfg, 'w') as f:
+                f.write(f'{user}\n{pw}')
     return {'username': user, 'password': pw}
 
 
