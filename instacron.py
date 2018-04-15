@@ -4,6 +4,7 @@ from glob import glob
 from json import loads
 import os.path
 import random
+import tempfile
 import time
 
 import dateutil.parser
@@ -120,7 +121,8 @@ def parse_photo_info(photo_info):
     return caption
 
 
-def strip_exif(photo, fname_new='/tmp/instacron.jpg'):
+def strip_exif(photo):
+    """Strip EXIF data from the photo to avoid a 500 error."""
     with open(photo, 'rb') as f:
         image = Image.open(f)
         data = list(image.getdata())
@@ -128,6 +130,8 @@ def strip_exif(photo, fname_new='/tmp/instacron.jpg'):
     image_without_exif = Image.new(image.mode, image.size)
     image_without_exif.putdata(data)
 
+    tmp_folder = tempfile.gettempdir()
+    fname_new = os.path.join(tmp_folder, 'instacron.jpg')
     image_without_exif.save(fname_new)
     return fname_new
 
