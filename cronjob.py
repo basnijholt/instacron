@@ -10,6 +10,9 @@ By adding the following line after executing `crontab -e`:
 import os.path
 import time
 
-if time.time() - os.path.getmtime('uploaded.txt') > 24 * 3600:
+dir_path = os.path.dirname(os.path.realpath(__file__))
+uploaded = os.path.join(dir_path, 'uploaded.txt')
+
+if time.time() - os.path.getmtime(uploaded) > 24 * 3600:
     import instacron
     instacron.main()
