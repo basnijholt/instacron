@@ -3,8 +3,8 @@
 """Run instacron.py every day between 8AM-9AM, 2PM-3PM, and 5PM-6PM.
 
 By adding the following line after executing `crontab -e`:
-* 8-9,14-15,17-18 * * * $HOME/instacron/cronjob.py
-(Modify the path of `instacron` in the above line.)
+* 8-9,14-15,17-18 * * * $HOME/miniconda3/bin/python $HOME/instacron/cronjob.py
+(Modify the path of `instacron` and `python` in the above line.)
 """
 
 import os.path
