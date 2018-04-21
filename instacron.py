@@ -12,7 +12,7 @@ import time
 import dateutil.parser
 import emoji
 import instabot
-from instabot.api.api_photo import compatibleAspectRatio, getImageSize
+from instabot.api.api_photo import compatible_aspect_ratio, get_image_size
 import numpy as np
 import parse
 import PIL.Image
@@ -47,7 +47,7 @@ def read_config(cfg='~/.config/instacron/config'):
 
 
 def correct_ratio(photo):
-    return compatibleAspectRatio(getImageSize(photo))
+    return compatible_aspect_ratio(get_image_size(photo))
 
 
 def get_all_photos(uploaded_file, photo_folder):
@@ -232,7 +232,7 @@ def main():
 
     bot = instabot.Bot()
     bot.login(**read_config())
-    upload = bot.uploadPhoto(fix_photo(photo), caption=caption)
+    upload = bot.upload_photo(fix_photo(photo), caption=caption)
     
     # After succeeding append the fname to the uploaded.txt file
     photo_base = os.path.basename(photo)
