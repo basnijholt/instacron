@@ -4,7 +4,7 @@ from collections import OrderedDict, defaultdict
 import random
 
 import attr
-from instabot import Bot
+from instabot import Bot, utils
 from instacron import read_config
 
 
@@ -17,53 +17,15 @@ def print_starting(f):
         return f(*args, **kwargs)
     return wrapper
 
-
 @attr.s
-class file:
-    fname = attr.ib()
-    
-    @property
-    def list(self):
-        with open(self.fname, 'r') as f:
-            return [x.strip('\n') for x in f.readlines()]
-
-    @property
-    def set(self):
-        return set(self.list)
-
-    def append(self, item):
-        with open(self.fname, 'a') as f:
-            f.write(f'{item}\n')
-              
-    def remove(self, x):
-        x = str(x)
-        items = self.list
-        with open(self.fname, 'w') as f:
-            for item in items:
-                if item != x:
-                    f.write(f'{item}\n')
-    
-    def random(self):
-        return random.choice(self.list)
-
-    def remove_duplicates(self):
-        return list(OrderedDict.fromkeys(self.list))
-
-    def save_list(self, items):
-        with open(self.fname, 'w') as f:
-            for item in items:
-                f.write(f'{item}\n')
-
-
-@attr.s
-class files:
+class MyBot:
     bot = attr.ib()
-    friends = attr.ib(default="config/friends.txt", converter=file)
-    tmp_following = attr.ib(default='config/tmp_following.txt', converter=file)
-    unfollowed = attr.ib(default='config/unfollowed.txt', converter=file)
-    to_follow = attr.ib(default='config/to_follow.txt', converter=file)
-    scraped_friends = attr.ib(default='config/scraped_friends.txt', converter=file)
-    skipped = attr.ib(default='skipped.txt', converter=file)
+    friends = attr.ib(default="config/friends.txt", converter=utils.file)
+    tmp_following = attr.ib(default='config/tmp_following.txt', converter=utils.file)
+    unfollowed = attr.ib(default='config/unfollowed.txt', converter=utils.file)
+    to_follow = attr.ib(default='config/to_follow.txt', converter=utils.file)
+    scraped_friends = attr.ib(default='config/scraped_friends.txt', converter=utils.file)
+    skipped = attr.ib(default='skipped.txt', converter=utils.file)
 
     @property
     def scrapable_friends(self):
@@ -150,7 +112,7 @@ if __name__ == '__main__':
     import time
     bot = Bot(max_following_to_followers_ratio=10)
     bot.login(**read_config())
-    c = files(bot)
+    c = MyBot(bot)
 
     while True:
         c.like_media_from_to_follow()
