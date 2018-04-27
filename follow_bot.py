@@ -5,8 +5,32 @@ import random
 
 import attr
 from instabot import Bot, utils
-from instacron import read_config
 
+
+def read_config(cfg='~/.config/instacron/config'):
+    """Read the config.
+
+    Create a config file at `cfg` with the
+    following information and structure:
+        my_user_name
+        my_difficult_password
+    """
+    import os.path
+    _cfg = os.path.expanduser(cfg)
+    try:
+        with open(_cfg, 'r') as f:
+            user, pw = [s.replace('\n', '') for s in f.readlines()]
+    except Exception:
+        import getpass
+        print(f"\nReading config file `{cfg}` didn't work")
+        user = input('Enter username and hit enter\n')
+        pw = getpass.getpass('Enter password and hit enter\n')
+        save_config = input(f"Save to config file `{cfg}` (y/N)? ").lower() == 'y'
+        if save_config:
+            os.makedirs(os.path.dirname(_cfg), exist_ok=True)
+            with open(_cfg, 'w') as f:
+                f.write(f'{user}\n{pw}')
+    return {'username': user, 'password': pw}
 
 def print_starting(f):
     from functools import wraps
@@ -111,12 +135,15 @@ class MyBot:
 if __name__ == '__main__':
     import time
     bot = Bot(max_following_to_followers_ratio=10)
-    bot.login(**read_config())
+    bot.api.login(**read_config(), use_cookie=True)
     c = MyBot(bot)
 
     while True:
-        c.like_media_from_to_follow()
-        c.follow_random()
-        c.unfollow_if_max_following()
-        c.unfollow_followers_that_are_not_friends()
-        time.sleep(random.uniform(3, 6))
+        try:
+            c.like_media_from_to_follow()
+            c.follow_random()
+            c.unfollow_if_max_following(max_following=700)
+            c.unfollow_followers_that_are_not_friends()
+            time.sleep(random.uniform(3, 6) * 60)
+        except Exception: 
+            pass
