@@ -131,6 +131,17 @@ class MyBot:
         print(f'Liking {n} medias from `{username}`.')
         self.bot.like_user(user_id, n)
 
+    @print_starting
+    def like_media_from_nonfollowers(self):
+        b = self.bot
+        x = (set(b.following) 
+             - set(b.followers)
+             - b.friends_file.set)
+        user_id = random.choice(list(x))
+        n = random.randint(5, 12)
+        username = self.bot.get_user_info(user_id)['username']
+        print(f'Liking {n} medias from `{username}`.')
+        self.bot.like_user(user_id, n)
 
 if __name__ == '__main__':
     import time
@@ -141,9 +152,10 @@ if __name__ == '__main__':
     while True:
         try:
             c.like_media_from_to_follow()
+            c.like_media_from_nonfollowers()
             c.follow_random()
-            c.unfollow_if_max_following(max_following=700)
-            c.unfollow_followers_that_are_not_friends()
-            time.sleep(random.uniform(3, 6) * 60)
-        except Exception: 
-            pass
+            c.unfollow_if_max_following(max_following=1400)
+            #c.unfollow_followers_that_are_not_friends()
+            time.sleep(random.uniform(50, 150)/1)
+        except Exception as e: 
+            print(str(e))
