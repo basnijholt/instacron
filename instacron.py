@@ -17,7 +17,6 @@ import numpy as np
 import parse
 import PIL.Image
 from requests import get
-from scipy.optimize import minimize_scalar
 from termcolor import colored
 
 
@@ -29,6 +28,7 @@ def read_config(cfg='~/.config/instacron/config'):
         my_user_name
         my_difficult_password
     """
+    import os.path
     _cfg = os.path.expanduser(cfg)
     try:
         with open(_cfg, 'r') as f:
@@ -186,6 +186,7 @@ def crop(x, y, data, w, h):
 
 
 def get_highest_entropy(img, min_ratio=4/5, max_ratio=90/47):
+    from scipy.optimize import minimize_scalar
     w, h = img.size
     data = np.array(img)
     ratio = w / h
