@@ -37,7 +37,7 @@ def print_starting(f):
     from huepy import green, bold
     @wraps(f)
     def wrapper(*args, **kwargs):
-        print(bold(green(f'Starting with `{f.__name__}`.')))
+        print(green(bold(f'\n\nStarting with `{f.__name__}`.')))
         return f(*args, **kwargs)
     return wrapper
 
@@ -83,13 +83,14 @@ class MyBot:
             self.tmp_following.append(user_id)
         self.to_follow.remove(user_id)
 
+    @print_starting
     def follow_random(self):
         self.update_to_follow()
         user_id = self.to_follow.random()
         self.follow(user_id)
 
     @print_starting
-    def unfollow_if_max_following(self, max_following=300):
+    def unfollow_if_max_following(self, max_following=500):
         """If following a new person every 5 minutes, this 
         gives a person 4 days to follow back."""
         i = 0
@@ -101,17 +102,19 @@ class MyBot:
 
     @print_starting
     def unfollow_followers_that_are_not_friends(self):
-        followers = set(self.bot.get_user_followers(self.bot.user_id))
+        followers = set(self.bot.followers)
         non_friends_followers = (followers - self.friends.set)
         followings = set(self.bot.get_user_following(self.bot.user_id))
         unfollows = [x for x in followings if x in non_friends_followers]
         for u in unfollows:
-            self.unfollow(u)
+            if u not in self.unfollowed.list:
+                self.unfollow(u)
 
     @print_starting
     def unfollow_accepted_unreturned_requests(self):
-        followings = set(self.bot.get_user_following(self.bot.user_id))
-        accepted_followings = [u for u in self.followed.list if u in followings and u not in self.friends.set]
+        followings = set(self.bot.following)
+        accepted_followings = [u for u in self.tmp_following.list
+                               if u in followings and u not in self.friends.set]
         for u in accepted_followings:
             info = c.bot.get_user_info(u)
             try:
@@ -129,19 +132,22 @@ class MyBot:
         n = random.randint(2, 6)
         username = self.bot.get_user_info(user_id)['username']
         print(f'Liking {n} medias from `{username}`.')
-        self.bot.like_user(user_id, n)
+        medias = self.bot.get_user_medias(user_id)
+        self.bot.like_medias(random.sample(medias, n))
+        self.to_follow.remove(user_id)
 
     @print_starting
     def like_media_from_nonfollowers(self):
-        b = self.bot
-        x = (set(b.following) 
-             - set(b.followers)
-             - b.friends_file.set)
+        x = (set(self.bot.following) 
+                 - set(self.bot.followers)
+                 - self.bot.friends_file.set)
         user_id = random.choice(list(x))
         n = random.randint(5, 12)
         username = self.bot.get_user_info(user_id)['username']
         print(f'Liking {n} medias from `{username}`.')
-        self.bot.like_user(user_id, n)
+        medias = self.bot.get_user_medias(user_id)
+        self.bot.like_medias(random.sample(medias, n))
+
 
 if __name__ == '__main__':
     import time
@@ -154,8 +160,9 @@ if __name__ == '__main__':
             c.like_media_from_to_follow()
             c.like_media_from_nonfollowers()
             c.follow_random()
-            c.unfollow_if_max_following(max_following=1400)
-            #c.unfollow_followers_that_are_not_friends()
-            time.sleep(random.uniform(50, 150)/1)
+            c.unfollow_if_max_following(max_following=2*len(bot.followers))
+            c.unfollow_followers_that_are_not_friends()
+            print('\nSleeping')
+            time.sleep(random.uniform(50, 150))
         except Exception as e: 
             print(str(e))
