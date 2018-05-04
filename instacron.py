@@ -155,6 +155,7 @@ def parse_photo_info(photo_info):
     # Advertize the Python script
     hashtags = ['instacron', country.lower(), city.lower().replace(' ', '')]
     caption += ' '.join('#' + h for h in hashtags)
+    captiom += ' '
     caption += emoji.emojize(':snake:') + ' www.instacron.nijho.lt'
 
     return caption
