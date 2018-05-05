@@ -69,6 +69,7 @@ class MyBot:
     def scrapable_friends(self):
         return list(self.friends.set - self.scraped_friends.set)
 
+    @print_starting
     def update_to_follow(self):
         if len(self.to_follow.list) < 100:
             user_id = random.choice(self.scrapable_friends)
@@ -143,15 +144,16 @@ class MyBot:
             self.unfollow(u)
 
     @print_starting
-    def unfollow_accepted_unreturned_requests(self):
-        followings = set(self.bot.get_user_following(self.bot.user_id))
-        accepted_followings = [u.split(',')[0] for u in self.tmp_following.list
-                               if u in followings and u not in self.friends.set]
-        for u in accepted_followings:
+    def unfollow_accepted_unreturned_requests(self, max_hours=1):
+        tmp_following, times = zip(*[x.split(',') for x in c.tmp_following.list])
+        accepted_followings = [(u, t) for u, t in zip(tmp_following, times)
+                               if u in self.bot.following and u not in self.friends.set]
+        for u, t in accepted_followings:
             info = c.bot.get_user_info(u)
             try:
-                if info['is_private']:
-                    print(f'\nUser {info["username"]} is private and accepted my request, but did not follow back.')
+                if info['is_private'] and time.time() - t > float(max_hours):
+                    print(f'\nUser {info["username"]} is private and accepted my '
+                          'request, but did not follow back in {max_hours} hours.')
                     self.unfollow(u)
             except:
                 pass
@@ -185,23 +187,23 @@ if __name__ == '__main__':
     bot = Bot(max_following_to_followers_ratio=10)
     bot.api.login(**read_config(), use_cookie=True)
     c = MyBot(bot)
-    while True:
-        try:
-            funcs = [
-                c.follow_random,
-                c.unfollow_if_max_following,
-                c.unfollow_accepted_unreturned_requests,
-                c.unfollow_after_time
-                # c.like_media_from_to_follow,
-                # c.like_media_from_nonfollowers,
-                # c.unfollow_followers_that_are_not_friends
-            ]
-            funcs = random.sample(funcs, min(3, len(funcs)))
-            for f in funcs:
-                f()
 
-        except Exception as e: 
-            print(str(e))
+    funcs = [
+        c.follow_random,
+        c.unfollow_if_max_following,
+        c.unfollow_after_time,
+        c.unfollow_accepted_unreturned_requests,
+        c.unfollow_followers_that_are_not_friends,
+        # c.like_media_from_to_follow,
+        # c.like_media_from_nonfollowers,
+    ]
+    while True:
+        f_picked = random.sample(f_picked, min(5, len(f_picked)))
+        for f in f_picked:
+            try:
+                f()
+            except Exception as e:
+                print(str(e))
 
         n_per_day = 800
         print_sleep(abs(random.gauss(86400 / n_per_day, 60)))
