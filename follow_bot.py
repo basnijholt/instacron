@@ -73,7 +73,10 @@ class MyBot:
         return self.update_to_follow()
 
     def unfollow(self, user_id):
-        self.bot.unfollow(user_id)
+        try:
+            self.bot.unfollow(user_id)
+        except Exception as e:
+            print(f'Could not find userinfo, error message: {e}')
         self.unfollowed.append(user_id)
         self.tmp_following.remove(user_id)
 
