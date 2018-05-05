@@ -158,19 +158,26 @@ def parse_photo_info(photo_info):
     caption += f'Taken in {country}, {city} {flag} on {date}. '
 
     # Advertize the Python script
-    hashtags = ['instacron', country.lower(), city.lower().replace(' ', '')]
+    country = country.lower().replace(" ", "")
+    hashtags = ['instacron', country, city.lower().replace(' ', '')]
     caption += ' '.join('#' + h for h in hashtags)
     caption += ' '
     caption += emoji.emojize(':snake:') + ' www.instacron.nijho.lt'
     caption += '\n' + 5*'.\n'
+
+    # Add some more hashtags that I've seen being used
     extra_hashtags = [
         'backpacker', 'wanderlust', 'sonya6000', 'earthoutdoors',
         'travel', 'traveling', 'beautifuldestinations', 'earthofficial',
         'nature', 'theglobewanderer', 'earthpix', 'earthfocus',
         'discoverearth', 'stayandwander', 'modernoutdoors',
         'awesome_earthpix', 'takemoreadventures', 'globetrotter',
-        'backpackerinc'
-        f'visit{country.lower()}', f'ig_{country.lower()}',
+        'backpackerinc', f'visit{country}', f'ig_{country}',
+    ]
+
+    # Add some random popular tags
+    extra_hashtags += [
+        'follow', 'followme', 'follow4follow', 'followback', 'like4like'
     ]
     if continent:
         continent = continent.replace(" ", "").lower()
