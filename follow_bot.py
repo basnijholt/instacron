@@ -147,7 +147,7 @@ class MyBot:
 
     @print_starting
     def like_media_from_nonfollowers(self):
-        user_ids = list(set(self.bot.following) 
+        user_ids = list(set(self.bot.following)
                         - set(self.bot.followers)
                         - self.bot.friends_file.set)
         user_id = random.choice(user_ids)
