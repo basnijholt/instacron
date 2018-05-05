@@ -99,6 +99,7 @@ class MyBot:
 
     def follow(self, user_id):
         self.bot.follow(user_id)
+        self.bot._following = None # temp solution
         if user_id not in self.skipped.list:
             self.tmp_following.append(f'{user_id},{time.time()}')
         self.to_follow.remove(user_id)
