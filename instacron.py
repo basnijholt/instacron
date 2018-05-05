@@ -169,6 +169,7 @@ def parse_photo_info(photo_info):
         'nature', 'theglobewanderer', 'earthpix', 'earthfocus',
         'discoverearth', 'stayandwander', 'modernoutdoors',
         'awesome_earthpix', 'takemoreadventures', 'globetrotter',
+        'backpackerinc'
         f'visit{country.lower()}', f'ig_{country.lower()}',
     ]
     if continent:
