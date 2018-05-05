@@ -93,9 +93,7 @@ class MyBot:
         self.follow(user_id)
 
     @print_starting
-    def unfollow_if_max_following(self, max_following=500):
-        """If following a new person every 5 minutes, this 
-        gives a person 4 days to follow back."""
+    def unfollow_if_max_following(self, max_following=200):
         i = 0
         while len(self.tmp_following.list) > max_following:
             i += 1
@@ -112,6 +110,14 @@ class MyBot:
         for u in unfollows:
             if u not in self.unfollowed.list:
                 self.unfollow(u)
+
+    @print_starting
+    def unfollow_all_non_friends(self):
+        followings = set(self.bot.following)
+        unfollows = [x for x in followings if x not in self.friends.list]
+        print(f'\nGoing to unfollow {len(unfollows)} "friends"'.)
+        for u in unfollows:
+            self.unfollow(u)
 
     @print_starting
     def unfollow_accepted_unreturned_requests(self):
@@ -132,7 +138,7 @@ class MyBot:
         user_id = self.to_follow.random()
         while self.bot.get_user_info(user_id)['is_private']:
             user_id = self.to_follow.random()
-        n = random.randint(2, 6)
+        n = random.randint(2, 4)
         username = self.bot.get_user_info(user_id)['username']
         print(f'Liking {n} medias from `{username}`.')
         medias = self.bot.get_user_medias(user_id)
@@ -141,11 +147,11 @@ class MyBot:
 
     @print_starting
     def like_media_from_nonfollowers(self):
-        x = (set(self.bot.following) 
-                 - set(self.bot.followers)
-                 - self.bot.friends_file.set)
-        user_id = random.choice(list(x))
-        n = random.randint(5, 12)
+        user_ids = list(set(self.bot.following) 
+                        - set(self.bot.followers)
+                        - self.bot.friends_file.set)
+        user_id = random.choice(user_ids)
+        n = random.randint(2, 4)
         username = self.bot.get_user_info(user_id)['username']
         print(f'Liking {n} medias from `{username}`.')
         medias = self.bot.get_user_medias(user_id)
@@ -160,11 +166,17 @@ if __name__ == '__main__':
 
     while True:
         try:
-            c.like_media_from_to_follow()
-            c.like_media_from_nonfollowers()
-            c.follow_random()
-            c.unfollow_if_max_following(max_following=2*len(bot.followers))
-            c.unfollow_followers_that_are_not_friends()
+            # c.unfollow_all_non_friends()
+
+            funcs = [c.like_media_from_to_follow,
+                     c.like_media_from_nonfollowers,
+                     c.follow_random,
+                     c.unfollow_if_max_following,
+                     c.unfollow_followers_that_are_not_friends]
+            funcs = random.sample(funcs, 3)
+            for f in funcs:
+                f()
+
             print('\nSleeping')
             time.sleep(random.uniform(50, 150))
         except Exception as e: 
