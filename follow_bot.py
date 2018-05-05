@@ -2,6 +2,8 @@
 
 from collections import OrderedDict, defaultdict
 import random
+import sys
+import time
 
 import attr
 from instabot import Bot, utils
@@ -32,6 +34,7 @@ def read_config(cfg='~/.config/instacron/config'):
                 f.write(f'{user}\n{pw}')
     return {'username': user, 'password': pw}
 
+
 def print_starting(f):
     from functools import wraps
     from huepy import green, bold
@@ -40,6 +43,17 @@ def print_starting(f):
         print(green(bold(f'\n\nStarting with `{f.__name__}`.')))
         return f(*args, **kwargs)
     return wrapper
+
+
+def print_sleep(t):
+    t = int(t)
+    print(f'Going to sleep for {t} seconds.')
+    for remaining in range(t, 0, -1):
+        sys.stdout.write(f"\r{remaining} seconds remaining.")
+        sys.stdout.flush()
+        time.sleep(1)
+    sys.stdout.write("\rDone sleeping!                ")
+
 
 @attr.s
 class MyBot:
@@ -78,12 +92,14 @@ class MyBot:
         except Exception as e:
             print(f'Could not find userinfo, error message: {e}')
         self.unfollowed.append(user_id)
-        self.tmp_following.remove(user_id)
+        to_remove = next(x for x in self.tmp_following.list
+                         if x.split(',')[0] == user_id)
+        self.tmp_following.remove(to_remove)
 
     def follow(self, user_id):
         self.bot.follow(user_id)
         if user_id not in self.skipped.list:
-            self.tmp_following.append(user_id)
+            self.tmp_following.append(f'{user_id},{time.time()}')
         self.to_follow.remove(user_id)
 
     @print_starting
@@ -93,13 +109,20 @@ class MyBot:
         self.follow(user_id)
 
     @print_starting
-    def unfollow_if_max_following(self, max_following=200):
+    def unfollow_if_max_following(self, max_following=1440):
         i = 0
         while len(self.tmp_following.list) > max_following:
             i += 1
-            self.unfollow(self.tmp_following.list[0])
+            self.unfollow(self.tmp_following.list[0].split(',')[0])
             if i > 10:
                 break
+
+    @print_starting
+    def unfollow_after_time(self, days_max=2):
+        user_id, t_follow = self.tmp_following.list[0].split(',')
+        while time.time() - float(t_follow) > 86400 * days_max:
+            self.unfollow(user_id)
+            user_id, t_follow = self.tmp_following.list[0].split(',')
 
     @print_starting
     def unfollow_followers_that_are_not_friends(self):
@@ -115,14 +138,14 @@ class MyBot:
     def unfollow_all_non_friends(self):
         followings = set(self.bot.following)
         unfollows = [x for x in followings if x not in self.friends.list]
-        print(f'\nGoing to unfollow {len(unfollows)} "friends"'.)
+        print(f'\nGoing to unfollow {len(unfollows)} "friends".')
         for u in unfollows:
             self.unfollow(u)
 
     @print_starting
     def unfollow_accepted_unreturned_requests(self):
-        followings = set(self.bot.following)
-        accepted_followings = [u for u in self.tmp_following.list
+        followings = set(self.bot.get_user_following(self.bot.user_id))
+        accepted_followings = [u.split(',')[0] for u in self.tmp_following.list
                                if u in followings and u not in self.friends.set]
         for u in accepted_followings:
             info = c.bot.get_user_info(u)
@@ -159,25 +182,26 @@ class MyBot:
 
 
 if __name__ == '__main__':
-    import time
     bot = Bot(max_following_to_followers_ratio=10)
     bot.api.login(**read_config(), use_cookie=True)
     c = MyBot(bot)
-
     while True:
         try:
-            # c.unfollow_all_non_friends()
-
-            funcs = [c.like_media_from_to_follow,
-                     c.like_media_from_nonfollowers,
-                     c.follow_random,
-                     c.unfollow_if_max_following,
-                     c.unfollow_followers_that_are_not_friends]
-            funcs = random.sample(funcs, 3)
+            funcs = [
+                c.follow_random,
+                c.unfollow_if_max_following,
+                c.unfollow_accepted_unreturned_requests,
+                c.unfollow_after_time
+                # c.like_media_from_to_follow,
+                # c.like_media_from_nonfollowers,
+                # c.unfollow_followers_that_are_not_friends
+            ]
+            funcs = random.sample(funcs, min(3, len(funcs)))
             for f in funcs:
                 f()
 
-            print('\nSleeping')
-            time.sleep(random.uniform(50, 150))
         except Exception as e: 
             print(str(e))
+
+        n_per_day = 800
+        print_sleep(abs(random.gauss(86400 / n_per_day, 60)))
