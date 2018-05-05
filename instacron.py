@@ -1,4 +1,6 @@
 #!/usr/bin/env python3.6
+# -*- coding: utf-8 -*-
+
 
 from collections import Counter
 from glob import glob
@@ -18,6 +20,8 @@ import parse
 import PIL.Image
 from requests import get
 from termcolor import colored
+
+from continents import continents
 
 
 def read_config(cfg='~/.config/instacron/config'):
@@ -143,6 +147,7 @@ def random_emoji():
 
 def parse_photo_info(photo_info):
     country = photo_info["country"]
+    continent = continents[country] if country in continents else None
     flag = country.replace(' ', '_')
     flag = emoji.emojize(f':{flag}:')
 
@@ -155,8 +160,22 @@ def parse_photo_info(photo_info):
     # Advertize the Python script
     hashtags = ['instacron', country.lower(), city.lower().replace(' ', '')]
     caption += ' '.join('#' + h for h in hashtags)
-    captiom += ' '
+    caption += ' '
     caption += emoji.emojize(':snake:') + ' www.instacron.nijho.lt'
+    caption += '\n' + 5*'.\n'
+    extra_hashtags = [
+        'backpacker', 'wanderlust', 'sonya6000', 'earthoutdoors',
+        'travel', 'traveling', 'beautifuldestinations', 'earthofficial',
+        'nature', 'theglobewanderer', 'earthpix', 'earthfocus',
+        'discoverearth', 'stayandwander', 'modernoutdoors',
+        'awesome_earthpix', 'takemoreadventures', 'globetrotter',
+        f'visit{country.lower()}', f'ig_{country.lower()}',
+    ]
+    if continent:
+        continent = continent.replace(" ", "").lower()
+        extra_hashtags += [f'visit{continent}', continent]
+    random.shuffle(extra_hashtags)
+    caption += ' '.join('#' + h for h in extra_hashtags)
 
     return caption
 
