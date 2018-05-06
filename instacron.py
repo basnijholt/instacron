@@ -55,7 +55,7 @@ def correct_ratio(photo):
 
 
 def get_all_photos(uploaded_file, photo_folder):
-    with open(uploaded_file) as f:
+    with open(uploaded_file, encoding='utf-8') as f:
         uploaded = [line.rstrip() for line in f]
     photos = glob(os.path.join(photo_folder, '*.jpg'))
     photos = photos_to_upload(photos, uploaded)
