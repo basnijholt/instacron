@@ -183,7 +183,7 @@ def parse_photo_info(photo_info):
         continent = continent.replace(" ", "").lower()
         extra_hashtags += [f'visit{continent}', continent]
     random.shuffle(extra_hashtags)
-    caption += ' '.join('#' + h for h in extra_hashtags)
+    caption += ' '.join('#' + h for h in extra_hashtags[:25])
 
     return caption
 
