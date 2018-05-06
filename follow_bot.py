@@ -75,9 +75,9 @@ class MyBot:
             user_id = random.choice(self.scrapable_friends)
             print(f'Choosing "{user_id}".')
             followers_of_friend = bot.get_user_followers(user_id)
-            potential_following = (set(followers_of_friend) 
-                                   - self.tmp_following.set 
-                                   - self.friends.set 
+            potential_following = (set(followers_of_friend)
+                                   - self.tmp_following.set
+                                   - self.friends.set
                                    - self.blacklist.set
                                    - self.unfollowed.set)
             for x in potential_following:
@@ -93,13 +93,14 @@ class MyBot:
         except Exception as e:
             print(f'Could not find userinfo, error message: {e}')
         self.unfollowed.append(user_id)
+        self.bot._following = None # temp solution until https://github.com/instagrambot/instabot/pull/531 is in released versions
         to_remove = next(x for x in self.tmp_following.list
                          if x.split(',')[0] == user_id)
         self.tmp_following.remove(to_remove)
 
     def follow(self, user_id):
         self.bot.follow(user_id)
-        self.bot._following = None # temp solution
+        self.bot._following = None # temp solution until https://github.com/instagrambot/instabot/pull/531 is in released versions
         if user_id not in self.skipped.list:
             self.tmp_following.append(f'{user_id},{time.time()}')
         self.to_follow.remove(user_id)
@@ -152,7 +153,7 @@ class MyBot:
         for u, t in accepted_followings:
             info = c.bot.get_user_info(u)
             try:
-                if info['is_private'] and time.time() - t > float(max_hours):
+                if info['is_private'] and time.time() - t > 3600 * float(max_hours):
                     print(f'\nUser {info["username"]} is private and accepted my '
                           'request, but did not follow back in {max_hours} hours.')
                     self.unfollow(u)
@@ -195,11 +196,14 @@ if __name__ == '__main__':
         c.unfollow_after_time,
         c.unfollow_accepted_unreturned_requests,
         c.unfollow_followers_that_are_not_friends,
-        # c.like_media_from_to_follow,
-        # c.like_media_from_nonfollowers,
+        c.like_media_from_to_follow,
+        c.like_media_from_nonfollowers,
     ]
     while True:
-        f_picked = random.sample(f_picked, min(5, len(f_picked)))
+        if random.random() < 0.1:
+            # Invalidate the cache every now and then
+            self.bot._following = None
+        f_picked = random.sample(funcs, len(funcs))
         for f in f_picked:
             try:
                 f()
