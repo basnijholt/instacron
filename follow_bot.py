@@ -132,7 +132,7 @@ class MyBot:
     def unfollow_followers_that_are_not_friends(self):
         followers = set(self.bot.followers)
         non_friends_followers = (followers - self.friends.set)
-        followings = set(self.bot.get_user_following(self.bot.user_id))
+        followings = set(self.bot.following)
         unfollows = [x for x in followings if x in non_friends_followers]
         for u in unfollows:
             if u not in self.unfollowed.list:
