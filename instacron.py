@@ -217,7 +217,6 @@ def get_caption(fname):
         'nature', 'theglobewanderer', 'earthpix', 'earthfocus',
         'discoverearth', 'stayandwander', 'modernoutdoors',
         'awesome_earthpix', 'takemoreadventures', 'globetrotter',
-        'backpackerinc',
     ]
     random.shuffle(extra_hashtags)
     for key in [country, continent]:
