@@ -188,7 +188,10 @@ class MyBot:
 
     @print_starting
     def track_followers(self):
-        n_followers_old = int(self.n_followers.list[-1].split(',')[0])    
+        try:
+            n_followers_old = int(self.n_followers.list[-1].split(',')[0])
+        except IndexError:
+            n_followers_old = 0
         n_followers = len(self.bot.followers)
         if n_followers_old != n_followers:
             self.n_followers.append(f'{n_followers},{time.time()}')
