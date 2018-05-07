@@ -2,6 +2,7 @@
 
 from collections import OrderedDict, defaultdict
 import random
+import pickle
 import sys
 import time
 
@@ -106,6 +107,25 @@ class MyBot:
             self.tmp_following.append(f'{user_id},{time.time()}')
         self.to_follow.remove(user_id)
 
+    def get_user_info(self, user_id):
+        try:
+            with open('user_infos.pickle', 'rb') as f:
+                user_infos = pickle.load(f)
+        except Exception:
+            user_infos = defaultdict(dict)
+
+        if user_id in user_infos:
+            return user_infos[user_id]['user_info']
+        else:
+            user_info = self.bot.get_user_info(u)
+            user_infos[user_id]['user_info'] = user_info
+            user_infos[user_id]['timestamp'] = time.time()
+
+            with open('user_infos.pickle', 'wb') as f:
+                pickle.dump(user_infos, f)
+
+            return user_info
+
     @print_starting
     def follow_random(self):
         self.update_to_follow()
@@ -152,7 +172,7 @@ class MyBot:
         accepted_followings = [(u, t) for u, t in zip(tmp_following, times)
                                if u in self.bot.following and u not in self.friends.set]
         for u, t in accepted_followings:
-            info = c.bot.get_user_info(u)
+            info = self.get_user_info(u)
             try:
                 if info['is_private'] and time.time() - t > 3600 * float(max_hours):
                     print(f'\nUser {info["username"]} is private and accepted my '
@@ -164,10 +184,10 @@ class MyBot:
     @print_starting
     def like_media_from_to_follow(self):
         user_id = self.to_follow.random()
-        while self.bot.get_user_info(user_id)['is_private']:
+        while self.get_user_info(user_id)['is_private']:
             user_id = self.to_follow.random()
         n = random.randint(2, 4)
-        username = self.bot.get_user_info(user_id)['username']
+        username = self.get_user_info(user_id)['username']
         print(f'Liking {n} medias from `{username}`.')
         medias = self.bot.get_user_medias(user_id)
         self.bot.like_medias(random.sample(medias, n))
@@ -180,7 +200,7 @@ class MyBot:
                         - self.bot.friends_file.set)
         user_id = random.choice(user_ids)
         n = random.randint(2, 4)
-        username = self.bot.get_user_info(user_id)['username']
+        username = self.get_user_info(user_id)['username']
         print(f'Liking {n} medias from `{username}`.')
         medias = self.bot.get_user_medias(user_id)
         picked_medias = random.sample(medias, min(n, len(medias)))
