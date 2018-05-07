@@ -93,14 +93,14 @@ class MyBot:
         except Exception as e:
             print(f'Could not find userinfo, error message: {e}')
         self.unfollowed.append(user_id)
-        self.bot._following = None # temp solution until https://github.com/instagrambot/instabot/pull/531 is in released versions
+        self.bot._following.remove(user_id)
         to_remove = next(x for x in self.tmp_following.list
                          if x.split(',')[0] == user_id)
         self.tmp_following.remove(to_remove)
 
     def follow(self, user_id):
         self.bot.follow(user_id)
-        self.bot._following = None # temp solution until https://github.com/instagrambot/instabot/pull/531 is in released versions
+        self.bot._following.append(user_id)
         if user_id not in self.skipped.list:
             self.tmp_following.append(f'{user_id},{time.time()}')
         self.to_follow.remove(user_id)
@@ -182,7 +182,8 @@ class MyBot:
         username = self.bot.get_user_info(user_id)['username']
         print(f'Liking {n} medias from `{username}`.')
         medias = self.bot.get_user_medias(user_id)
-        self.bot.like_medias(random.sample(medias, n))
+        picked_medias = random.sample(medias, min(n, len(medias)))
+        self.bot.like_medias(picked_medias)
 
 
 if __name__ == '__main__':
@@ -196,13 +197,13 @@ if __name__ == '__main__':
         c.unfollow_after_time,
         c.unfollow_accepted_unreturned_requests,
         c.unfollow_followers_that_are_not_friends,
-        c.like_media_from_to_follow,
-        c.like_media_from_nonfollowers,
+#        c.like_media_from_to_follow,
+#        c.like_media_from_nonfollowers,
     ]
     while True:
-        if random.random() < 0.1:
+        if random.random() < 0.05:
             # Invalidate the cache every now and then
-            self.bot._following = None
+            c.bot._followers = None
         f_picked = random.sample(funcs, len(funcs))
         for f in f_picked:
             try:
@@ -210,5 +211,5 @@ if __name__ == '__main__':
             except Exception as e:
                 print(str(e))
 
-        n_per_day = 800
+        n_per_day = 400
         print_sleep(abs(random.gauss(86400 / n_per_day, 60)))
