@@ -65,6 +65,7 @@ class MyBot:
     to_follow = attr.ib(default='config/to_follow.txt', converter=utils.file)
     scraped_friends = attr.ib(default='config/scraped_friends.txt', converter=utils.file)
     n_followers = attr.ib(default='config/n_followers.txt', converter=utils.file)
+    user_infos_file = attr.ib(default='config/user_infos.pickle')
     skipped = attr.ib(default='skipped.txt', converter=utils.file)
 
     @property
@@ -109,7 +110,7 @@ class MyBot:
 
     def get_user_info(self, user_id):
         try:
-            with open('user_infos.pickle', 'rb') as f:
+            with open(self.user_infos_file, 'rb') as f:
                 user_infos = pickle.load(f)
         except Exception:
             user_infos = defaultdict(dict)
@@ -117,11 +118,11 @@ class MyBot:
         if user_id in user_infos:
             return user_infos[user_id]['user_info']
         else:
-            user_info = self.bot.get_user_info(u)
+            user_info = self.bot.get_user_info(user_id)
             user_infos[user_id]['user_info'] = user_info
             user_infos[user_id]['timestamp'] = time.time()
 
-            with open('user_infos.pickle', 'wb') as f:
+            with open(self.user_infos_file, 'wb') as f:
                 pickle.dump(user_infos, f)
 
             return user_info
