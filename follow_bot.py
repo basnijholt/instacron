@@ -63,6 +63,7 @@ class MyBot:
     unfollowed = attr.ib(default='config/unfollowed.txt', converter=utils.file)
     to_follow = attr.ib(default='config/to_follow.txt', converter=utils.file)
     scraped_friends = attr.ib(default='config/scraped_friends.txt', converter=utils.file)
+    n_followers = attr.ib(default='config/n_followers.txt', converter=utils.file)
     skipped = attr.ib(default='skipped.txt', converter=utils.file)
 
     @property
@@ -185,6 +186,12 @@ class MyBot:
         picked_medias = random.sample(medias, min(n, len(medias)))
         self.bot.like_medias(picked_medias)
 
+    @print_starting
+    def track_followers(self):
+        n_followers_old = int(self.n_followers.list[-1].split(',')[0])    
+        n_followers = len(self.bot.followers)
+        if n_followers_old != n_followers:
+            self.n_followers.append(f'{n_followers},{time.time()}')
 
 if __name__ == '__main__':
     bot = Bot(max_following_to_followers_ratio=10)
@@ -204,6 +211,7 @@ if __name__ == '__main__':
         if random.random() < 0.05:
             # Invalidate the cache every now and then
             c.bot._followers = None
+        c.track_followers()
         f_picked = random.sample(funcs, len(funcs))
         for f in f_picked:
             try:
