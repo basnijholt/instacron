@@ -13,6 +13,8 @@ import time
 
 import dateutil.parser
 import emoji
+import exifread
+import geocoder
 import instabot
 from instabot.api.api_photo import compatible_aspect_ratio, get_image_size
 import numpy as np
@@ -106,19 +108,53 @@ def photos_to_upload(photos, uploaded):
     return _photos
 
 
-def parse_photo_name(photo):
+def get_lat_long_from_exif(exif):
+    def dms2dd(degrees, minutes, seconds, direction):
+        dd = degrees + minutes / 60 + seconds / 3600
+        if direction in 'SW':
+            dd *= -1
+        return dd
+    d, m, s = eval(exif['GPS GPSLatitude'].printable)
+    lat = dms2dd(d, m, s, exif['GPS GPSLatitudeRef'].printable)
+    d, m, s = eval(exif['GPS GPSLongitude'].printable)
+    long = dms2dd(d, m, s, exif['GPS GPSLongitudeRef'].printable)
+    return lat, long
+
+
+def get_info_from_exif(fname):
+    with open(fname, 'rb') as f:
+        tags = exifread.process_file(f)
+    try:
+        lat, long = get_lat_long_from_exif(tags)
+        r = geocoder.google([lat, long], method='reverse').current_result
+        while r is None:
+            time.sleep(0.1)
+            r = geocoder.google([lat, long], method='reverse').current_result
+        city = r.city if r.city is not None else r.county
+        country = r.country_long
+    except Exception:
+        city, country = None, None
+    date = dateutil.parser.parse(tags['Image DateTime'].printable)
+    return city, country, date
+
+
+def get_photo_info(photo):
     """All my photos are named like `854-20151121-Peru-Cusco.jpg`"""
-    templates = ['{i}-{date}-{country}-{city}-{rest}.jpg',
-                 '{i}-{date}-{country}-{city}.jpg']
-    parsed = None
-    for template in templates:
-        parsed = parse.parse(template, photo)
-        if parsed is not None:
-            d = parsed.named
-            if 'rest' in d:
-                d['rest'] = d['rest'].replace('-', ' ')
-            d['date'] = dateutil.parser.parse(d['date'])
-            return d
+    try:
+        templates = ['{i}-{date}-{country}-{city}-{rest}.jpg',
+                     '{i}-{date}-{country}-{city}.jpg']
+        parsed = None
+        for template in templates:
+            parsed = parse.parse(template, os.path.basename(photo))
+            if parsed is not None:
+                d = parsed.named
+                date = dateutil.parser.parse(d['date'])
+                return d['city'], d['country'], date
+        raise Exception("Didn't find a matching template.")
+    except Exception as e:
+        print(e)
+        print('Getting info from EXIF data.')
+        return get_info_from_exif(photo)
 
 
 def _get_random_quote():
@@ -145,25 +181,34 @@ def random_emoji():
     return random.choice(emojis)
 
 
-def parse_photo_info(photo_info):
-    country = photo_info["country"]
+def get_camera_settings(fname):
+    with open(fname, 'rb') as f:
+        tags = exifread.process_file(f)
+    brand = tags['Image Make'].printable
+    model = tags['Image Model'].printable
+    lens = tags['EXIF LensModel'].printable
+    focal_length = tags['EXIF FocalLength']
+    shutter_speed = tags['EXIF ExposureTime'].printable
+    apeture = tags['EXIF FNumber'].printable
+    iso = tags['EXIF ISOSpeedRatings'].printable
+    s = f' {brand} {model} | {focal_length} mm | ƒ/{apeture} | {shutter_speed} sec | ISO {iso}'
+    return emoji.emojize(':camera:') + "⚙: " + s
+
+
+def get_caption(fname):
+    city, country, date  = get_photo_info(fname)
     continent = continents[country] if country in continents else None
-    flag = country.replace(' ', '_')
-    flag = emoji.emojize(f':{flag}:')
+    flag = emoji.emojize(f":{country.replace(' ', '_')}:")
 
     # Add two random emojis, the date, and the location info with flag emoji
-    date = "{:%d %B %Y}".format(photo_info['date'])
-    city = photo_info["city"]
-    caption = random_emoji() + random_emoji() + 3 * ' '
-    caption += f'Taken in {country}, {city} {flag} on {date}. '
+    caption = random_emoji() + random_emoji() + '   Taken'
+    caption += f' in {country}' + (f', {city}' if city else '') + flag
+    caption += ' on {:%d %B %Y}. '.format(date)
 
     # Advertize the Python script
-    country = country.lower().replace(" ", "")
-    hashtags = ['instacron', country, city.lower().replace(' ', '')]
-    caption += ' '.join('#' + h for h in hashtags)
-    caption += ' '
-    caption += emoji.emojize(':snake:') + ' www.instacron.nijho.lt'
-    caption += '\n' + 5*'.\n'
+    caption += '#instacron ' + emoji.emojize(':snake:') + ' www.instacron.nijho.lt'
+    spacer = '\n' + 3*'.\n'
+    caption += spacer + get_camera_settings(fname) + spacer
 
     # Add some more hashtags that I've seen being used
     extra_hashtags = [
@@ -172,18 +217,20 @@ def parse_photo_info(photo_info):
         'nature', 'theglobewanderer', 'earthpix', 'earthfocus',
         'discoverearth', 'stayandwander', 'modernoutdoors',
         'awesome_earthpix', 'takemoreadventures', 'globetrotter',
-        'backpackerinc', f'visit{country}', f'ig_{country}',
+        'backpackerinc',
     ]
-
-    # Add some random popular tags
-    extra_hashtags += [
-        'follow', 'followme', 'follow4follow', 'followback', 'like4like'
-    ]
-    if continent:
-        continent = continent.replace(" ", "").lower()
-        extra_hashtags += [f'visit{continent}', continent]
     random.shuffle(extra_hashtags)
-    caption += ' '.join('#' + h for h in extra_hashtags[:25])
+    for key in [country, continent]:
+        if key:
+            key = key.replace(" ", "").lower()
+            extra_hashtags += [f'visit{key}', key]
+    if city:
+        extra_hashtags.append(city.replace(" ", "").lower())
+    if country:
+        extra_hashtags.append(f'ig_{country.replace(" ", "").lower()}')
+    extra_hashtags = extra_hashtags[-27:]
+    random.shuffle(extra_hashtags)  # both shuffles are useful
+    caption += ' '.join('#' + h for h in extra_hashtags)
 
     return caption
 
@@ -253,10 +300,8 @@ def main():
     photo_folder = os.path.join(dir_path, 'photos')
     uploaded_file = os.path.join(dir_path, 'uploaded.txt')
     photo = choose_random_photo(uploaded_file, photo_folder)
-    photo_info = parse_photo_name(os.path.basename(photo))
-    if photo_info:
-        caption += parse_photo_info(photo_info)
-    
+    caption += get_caption(photo)
+
     print(f'Uploading `{photo}` with caption:\n\n {caption}')
 
     bot = instabot.Bot()
