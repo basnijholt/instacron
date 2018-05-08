@@ -96,10 +96,14 @@ class MyBot:
         except Exception as e:
             print(f'Could not find userinfo, error message: {e}')
         self.unfollowed.append(user_id)
-        self.bot._following.remove(user_id)
-        to_remove = next(x for x in self.tmp_following.list
-                         if x.split(',')[0] == user_id)
-        self.tmp_following.remove(to_remove)
+        if user_id in self.bot._following:
+            self.bot._following.remove(user_id)
+        try:
+            to_remove = next(x for x in self.tmp_following.list
+                             if x.split(',')[0] == user_id)
+            self.tmp_following.remove(to_remove)
+        except StopIteration:
+            pass
 
     def follow(self, user_id):
         self.bot.follow(user_id)
