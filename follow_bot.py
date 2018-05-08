@@ -236,14 +236,14 @@ if __name__ == '__main__':
 #        c.like_media_from_nonfollowers,
     ]
     while True:
-        n_per_day = 400
+        n_per_day = 600
         n_seconds = 86400 / n_per_day
         if random.random() < n_seconds / (3 * 3600):
             # Invalidate the cache every ~3 hours
             c.bot._followers = None
         c.track_followers()
-        f_picked = random.sample(funcs, len(funcs))
-        for f in f_picked:
+        random.shuffle(funcs)
+        for f in funcs:
             try:
                 f()
             except Exception as e:
