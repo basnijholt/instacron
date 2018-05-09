@@ -1,5 +1,6 @@
 #!/usr/bin/env python3.6
 
+import atexit
 from collections import OrderedDict, defaultdict
 import random
 import pickle
@@ -7,6 +8,7 @@ import sys
 import time
 
 import attr
+from diskcache import Cache
 from instabot import Bot, utils
 
 
@@ -65,9 +67,11 @@ class MyBot:
     to_follow = attr.ib(default='config/to_follow.txt', converter=utils.file)
     scraped_friends = attr.ib(default='config/scraped_friends.txt', converter=utils.file)
     n_followers = attr.ib(default='config/n_followers.txt', converter=utils.file)
-    user_infos_file = attr.ib(default='config/user_infos.pickle')
-    user_infos = attr.ib(default=None)
+    user_infos = attr.ib(default='config/user_infos', converter=Cache)
     skipped = attr.ib(default='skipped.txt', converter=utils.file)
+
+    def __attrs_post_init__(self):
+        atexit.register(self.close)
 
     @property
     def scrapable_friends(self):
@@ -114,25 +118,11 @@ class MyBot:
         self.to_follow.remove(user_id)
 
     def get_user_info(self, user_id):
-        if self.user_infos is None:
-            try:
-                with open(self.user_infos_file, 'rb') as f:
-                    self.user_infos = pickle.load(f)
-            except Exception:
-                self.user_infos = defaultdict(dict)
-
-        if user_id in self.user_infos:
-            return self.user_infos[user_id]['user_info']
-        else:
-            print(f'{user_id} is not in the user_infos.pickle file.')
+        if user_id not in self.user_infos:
+            print(f'{user_id} is not in the user_info database.')
             user_info = self.bot.get_user_info(user_id)
-            self.user_infos[user_id]['user_info'] = user_info
-            self.user_infos[user_id]['timestamp'] = time.time()
-
-            with open(self.user_infos_file, 'wb') as f:
-                pickle.dump(self.user_infos, f)
-
-            return user_info
+            self.user_infos.set(user_id, user_info, expire=86400*3, tag='user_info')
+        return self.user_infos[user_id]
 
     @print_starting
     def follow_random(self):
@@ -224,6 +214,10 @@ class MyBot:
         if n_followers_old != n_followers:
             self.n_followers.append(f'{n_followers},{time.time()}')
 
+    def close(self):
+        print('Closing user_infos database.')
+        self.user_infos.close()
+
 if __name__ == '__main__':
     bot = Bot(max_following_to_followers_ratio=10)
     bot.api.login(**read_config(), use_cookie=True)
@@ -239,7 +233,7 @@ if __name__ == '__main__':
 #        c.like_media_from_nonfollowers,
     ]
     while True:
-        n_per_day = 700
+        n_per_day = 800
         n_seconds = 86400 / n_per_day
         if random.random() < n_seconds / (3 * 3600):
             # Invalidate the cache every ~3 hours
