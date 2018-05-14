@@ -214,6 +214,18 @@ class MyBot:
         if n_followers_old != n_followers:
             self.n_followers.append(f'{n_followers},{time.time()}')
 
+    @print_starting
+    def unfollow_failed_unfollows(self):
+        """This will unfollow users that were already unfollowed
+        but something has gone wrong."""
+        tmp_following = [u.split(',')[0] for u in self.tmp_following.list]
+        users = set(bot.following) - set(tmp_following) - self.friends.set
+        manually_followed = set(users) - self.unfollowed.set
+        to_unfollow = set(users) - manually_followed
+        print(f'Going to unfollow {len(to_unfollow)} users')
+        for u in to_unfollow:
+            self.unfollow(u)
+
     def close(self):
         print('Closing user_infos database.')
         self.user_infos.close()
@@ -229,6 +241,7 @@ if __name__ == '__main__':
         c.unfollow_after_time,
         c.unfollow_accepted_unreturned_requests,
         c.unfollow_followers_that_are_not_friends,
+        c.unfollow_failed_unfollows,
 #        c.like_media_from_to_follow,
 #        c.like_media_from_nonfollowers,
     ]
