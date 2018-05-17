@@ -249,6 +249,7 @@ if __name__ == '__main__':
     while True:
         n_per_day = 800
         n_seconds = 86400 / n_per_day
+        t_start = time.time()
         if random.random() < n_seconds / (3 * 3600):
             # Invalidate the cache every ~3 hours
             c.bot._followers = None
@@ -259,5 +260,5 @@ if __name__ == '__main__':
                 f()
             except Exception as e:
                 print(str(e))
-
-        print_sleep(abs(random.gauss(n_seconds, 60)))
+        wait_for = n_seconds - (time.time() - t_start)
+        print_sleep(abs(random.gauss(wait_for, 60)))
