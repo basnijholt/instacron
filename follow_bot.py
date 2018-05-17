@@ -81,15 +81,16 @@ class MyBot:
     def update_to_follow(self):
         if len(self.to_follow.list) < 100:
             user_id = random.choice(self.scrapable_friends)
-            print(f'Choosing "{user_id}".')
+            username = self.get_user_info(user_id)['username']
+            print(f'Choosing "{user_id}", {username}.')
             followers_of_friend = bot.get_user_followers(user_id)
             potential_following = (set(followers_of_friend)
                                    - self.tmp_following.set
                                    - self.friends.set
-                                   - self.blacklist.set
+                                   - self.bot.blacklist_file.set
                                    - self.unfollowed.set)
-            for x in potential_following:
-                self.to_follow.append(x)
+            to_follow = self.to_follow.list + list(potential_following)
+            self.to_follow.save(to_follow)
             self.scraped_friends.append(user_id)
         else:
             return self.to_follow.list
@@ -121,7 +122,7 @@ class MyBot:
         if user_id not in self.user_infos:
             print(f'{user_id} is not in the user_info database.')
             user_info = self.bot.get_user_info(user_id)
-            self.user_infos.set(user_id, user_info, expire=86400*3, tag='user_info')
+            self.user_infos.set(user_id, user_info, expire=86400*7, tag='user_info')
         return self.user_infos[user_id]
 
     @print_starting
