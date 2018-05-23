@@ -79,7 +79,7 @@ class MyBot:
 
     @print_starting
     def update_to_follow(self):
-        if len(self.to_follow.list) < 100:
+        if len(self.to_follow.list) < 1:
             user_id = random.choice(self.scrapable_friends)
             username = self.get_user_info(user_id)['username']
             print(f'Choosing "{user_id}", {username}.')
@@ -90,7 +90,7 @@ class MyBot:
                                    - self.bot.blacklist_file.set
                                    - self.unfollowed.set)
             to_follow = self.to_follow.list + list(potential_following)
-            self.to_follow.save(to_follow)
+            self.to_follow.save_list(to_follow)
             self.scraped_friends.append(user_id)
         else:
             return self.to_follow.list
@@ -141,7 +141,7 @@ class MyBot:
                 break
 
     @print_starting
-    def unfollow_after_time(self, days_max=2):
+    def unfollow_after_time(self, days_max=7):
         user_id, t_follow = self.tmp_following.list[0].split(',')
         while time.time() - float(t_follow) > 86400 * days_max:
             self.unfollow(user_id)
@@ -232,7 +232,7 @@ class MyBot:
         self.user_infos.close()
 
 if __name__ == '__main__':
-    bot = Bot(max_following_to_followers_ratio=10)
+    bot = Bot(max_following_to_followers_ratio=20, max_following_to_follow=5000)
     bot.api.login(**read_config(), use_cookie=True)
     c = MyBot(bot)
 
@@ -243,11 +243,11 @@ if __name__ == '__main__':
         c.unfollow_accepted_unreturned_requests,
         c.unfollow_followers_that_are_not_friends,
         c.unfollow_failed_unfollows,
-#        c.like_media_from_to_follow,
-#        c.like_media_from_nonfollowers,
+        c.like_media_from_to_follow,
+        c.like_media_from_nonfollowers,
     ]
     while True:
-        n_per_day = 800
+        n_per_day = 900
         n_seconds = 86400 / n_per_day
         t_start = time.time()
         if random.random() < n_seconds / (3 * 3600):
@@ -261,4 +261,4 @@ if __name__ == '__main__':
             except Exception as e:
                 print(str(e))
         wait_for = n_seconds - (time.time() - t_start)
-        print_sleep(abs(random.gauss(wait_for, 60)))
+        print_sleep(max(random.gauss(wait_for, 60), 0))
