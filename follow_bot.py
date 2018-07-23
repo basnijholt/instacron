@@ -98,12 +98,11 @@ class MyBot:
 
     def unfollow(self, user_id):
         try:
-            self.bot.unfollow(user_id)
+            print(f'Unfollowing {user_id}')
+            self.bot.api.unfollow(user_id)
         except Exception as e:
             print(f'Could not find userinfo, error message: {e}')
         self.unfollowed.append(user_id)
-        if user_id in self.bot._following:
-            self.bot._following.remove(user_id)
         try:
             to_remove = next(x for x in self.tmp_following.list
                              if x.split(',')[0] == user_id)
@@ -113,7 +112,6 @@ class MyBot:
 
     def follow(self, user_id):
         self.bot.follow(user_id)
-        self.bot._following.append(user_id)
         if user_id not in self.skipped.list:
             self.tmp_following.append(f'{user_id},{time.time()}')
         self.to_follow.remove(user_id)
@@ -141,7 +139,7 @@ class MyBot:
                 break
 
     @print_starting
-    def unfollow_after_time(self, days_max=7):
+    def unfollow_after_time(self, days_max=2):
         user_id, t_follow = self.tmp_following.list[0].split(',')
         while time.time() - float(t_follow) > 86400 * days_max:
             self.unfollow(user_id)
@@ -227,6 +225,12 @@ class MyBot:
         for u in to_unfollow:
             self.unfollow(u)
 
+    @print_starting
+    def refollow_friends(self):
+        for u in self.friends.list:
+            if u not in self.bot.following:
+                c.follow(u)
+
     def close(self):
         print('Closing user_infos database.')
         self.user_infos.close()
@@ -235,7 +239,7 @@ if __name__ == '__main__':
     bot = Bot(max_following_to_followers_ratio=20, max_following_to_follow=5000)
     bot.api.login(**read_config(), use_cookie=True)
     c = MyBot(bot)
-
+    c.refollow_friends()
     funcs = [
         c.follow_random,
         c.unfollow_if_max_following,
@@ -246,8 +250,16 @@ if __name__ == '__main__':
         c.like_media_from_to_follow,
         c.like_media_from_nonfollowers,
     ]
+
+    to_unfollow = utils.file('to_unfollow.txt')
+    for u in to_unfollow.list:
+        user_id = bot.get_user_id_from_username(u)
+        c.unfollow(user_id)
+        to_unfollow.remove(u)
+        time.sleep(20)
+
     while True:
-        n_per_day = 900
+        n_per_day = 300
         n_seconds = 86400 / n_per_day
         t_start = time.time()
         if random.random() < n_seconds / (3 * 3600):
