@@ -302,14 +302,16 @@ def main():
     caption += get_caption(photo)
 
     print(f'Uploading `{photo}` with caption:\n\n {caption}')
+    print(os.path.basename(photo))
 
     bot = instabot.Bot()
     bot.login(**read_config())
     upload = bot.upload_photo(fix_photo(photo), caption=caption)
-    
+
     # After succeeding append the fname to the uploaded.txt file
     photo_base = os.path.basename(photo)
     if upload:
+        time.sleep(4)
         print(colored(f'Upload of {photo_base} succeeded.', 'green'))
         append_to_uploaded_file(uploaded_file, photo_base)
     else:
