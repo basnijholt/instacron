@@ -112,7 +112,7 @@ class MyBot:
 
     def follow(self, user_id, tmp_follow=True):
         self.bot.follow(user_id)
-        if tmp_following and user_id not in self.skipped.list:
+        if tmp_follow and user_id not in self.skipped.list:
             self.tmp_following.append(f'{user_id},{time.time()}')
         self.to_follow.remove(user_id)
 
@@ -229,7 +229,7 @@ class MyBot:
     def refollow_friends(self):
         for u in self.friends.list:
             if u not in self.bot.following:
-                c.follow(u, tmp_following=False)
+                self.follow(u, tmp_follow=False)
 
     def close(self):
         print('Closing user_infos database.')
