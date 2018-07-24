@@ -110,9 +110,9 @@ class MyBot:
         except StopIteration:
             pass
 
-    def follow(self, user_id):
+    def follow(self, user_id, tmp_follow=True):
         self.bot.follow(user_id)
-        if user_id not in self.skipped.list:
+        if tmp_following and user_id not in self.skipped.list:
             self.tmp_following.append(f'{user_id},{time.time()}')
         self.to_follow.remove(user_id)
 
@@ -194,7 +194,7 @@ class MyBot:
     def like_media_from_nonfollowers(self):
         user_ids = list(set(self.bot.following)
                         - set(self.bot.followers)
-                        - self.bot.friends_file.set)
+                        - self.friends.set)
         user_id = random.choice(user_ids)
         n = random.randint(2, 4)
         username = self.get_user_info(user_id)['username']
@@ -229,7 +229,7 @@ class MyBot:
     def refollow_friends(self):
         for u in self.friends.list:
             if u not in self.bot.following:
-                c.follow(u)
+                c.follow(u, tmp_following=False)
 
     def close(self):
         print('Closing user_infos database.')
