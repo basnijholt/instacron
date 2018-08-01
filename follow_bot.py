@@ -272,5 +272,9 @@ if __name__ == '__main__':
                 f()
             except Exception as e:
                 print(str(e))
+
+            if bot.api.last_json['message'] == 'feedback_required':
+                raise Exception('The bot is spamming! Exit the program before I get banned.')
+
         wait_for = n_seconds - (time.time() - t_start)
         print_sleep(max(random.gauss(wait_for, 60), 0))
