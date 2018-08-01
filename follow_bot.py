@@ -2,6 +2,7 @@
 
 import atexit
 from collections import OrderedDict, defaultdict
+from functools import wraps
 import random
 import pickle
 import sys
@@ -39,12 +40,28 @@ def read_config(cfg='~/.config/instacron/config'):
 
 
 def print_starting(f):
-    from functools import wraps
     from huepy import green, bold
     @wraps(f)
     def wrapper(*args, **kwargs):
         print(green(bold(f'\n\nStarting with `{f.__name__}`.')))
         return f(*args, **kwargs)
+    return wrapper
+
+
+def stop_spamming(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if args[0].bot.api.last_json.get('message') == 'feedback_required':
+            print('The bot is spamming! Exit the program before I get banned.')
+            sys.exit(1)
+        return f(*args, **kwargs)
+    return wrapper
+
+
+def check_authorization(f):
+    def wrapper(*args):
+        print args[0].url
+        return f(*args)
     return wrapper
 
 
@@ -96,6 +113,7 @@ class MyBot:
             return self.to_follow.list
         return self.update_to_follow()
 
+    @stop_spamming
     def unfollow(self, user_id):
         try:
             print(f'Unfollowing {user_id}')
@@ -110,12 +128,14 @@ class MyBot:
         except StopIteration:
             pass
 
+    @stop_spamming
     def follow(self, user_id, tmp_follow=True):
         self.bot.follow(user_id)
         if tmp_follow and user_id not in self.skipped.list:
             self.tmp_following.append(f'{user_id},{time.time()}')
         self.to_follow.remove(user_id)
 
+    @stop_spamming
     def get_user_info(self, user_id):
         if user_id not in self.user_infos:
             print(f'{user_id} is not in the user_info database.')
@@ -123,7 +143,7 @@ class MyBot:
             self.user_infos.set(user_id, user_info, expire=86400*7, tag='user_info')
         return self.user_infos[user_id]
 
-    @print_starting
+    @stop_spamming
     def follow_random(self):
         self.update_to_follow()
         user_id = self.to_follow.random()
@@ -179,6 +199,7 @@ class MyBot:
                 pass
 
     @print_starting
+    @stop_spamming
     def like_media_from_to_follow(self):
         user_id = self.to_follow.random()
         while self.get_user_info(user_id)['is_private']:
@@ -191,6 +212,7 @@ class MyBot:
         self.to_follow.remove(user_id)
 
     @print_starting
+    @stop_spamming
     def like_media_from_nonfollowers(self):
         user_ids = list(set(self.bot.following)
                         - set(self.bot.followers)
@@ -235,6 +257,7 @@ class MyBot:
         print('Closing user_infos database.')
         self.user_infos.close()
 
+
 if __name__ == '__main__':
     bot = Bot(max_following_to_followers_ratio=20, max_following_to_follow=5000)
     bot.api.login(**read_config(), use_cookie=True)
@@ -272,9 +295,6 @@ if __name__ == '__main__':
                 f()
             except Exception as e:
                 print(str(e))
-
-            if bot.api.last_json.get('message') == 'feedback_required':
-                raise Exception('The bot is spamming! Exit the program before I get banned.')
 
         wait_for = n_seconds - (time.time() - t_start)
         print_sleep(max(random.gauss(wait_for, 60), 0))
