@@ -294,11 +294,22 @@ def append_to_uploaded_file(uploaded_file, photo):
 
 
 def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Instacron.')
+    parser.add_argument('--fname', metavar='fname', type=str, default=None,
+                        help='filename of the photo, random if empty.')
+    args = parser.parse_args()
     caption = get_random_quote()
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    photo_folder = os.path.join(dir_path, 'photos')
     uploaded_file = os.path.join(dir_path, 'uploaded.txt')
-    photo = choose_random_photo(uploaded_file, photo_folder)
+    if args.fname is None:
+        photo_folder = os.path.join(dir_path, 'photos')
+        photo = choose_random_photo(uploaded_file, photo_folder)
+    else:
+        photo = args.fname
+
+    pic = fix_photo(photo)
     caption += get_caption(photo)
 
     print(f'Uploading `{photo}` with caption:\n\n {caption}')
@@ -306,7 +317,7 @@ def main():
 
     bot = instabot.Bot()
     bot.login(**read_config())
-    upload = bot.upload_photo(fix_photo(photo), caption=caption)
+    upload = bot.upload_photo(pic, caption=caption)
 
     # After succeeding append the fname to the uploaded.txt file
     photo_base = os.path.basename(photo)
