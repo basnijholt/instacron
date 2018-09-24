@@ -242,14 +242,24 @@ class MyBot:
         user_id = self.to_follow.random()
         while self.get_user_info(user_id)['is_private']:
             user_id = self.to_follow.random()
-        n = random.randint(4, 10)
         username = self.get_user_info(user_id)['username']
-        print(f'Liking {n} medias from `{username}`.')
         medias = self.bot.get_user_medias(user_id)
-        self.bot.like_medias(random.sample(medias, n))
-        self.follow(user_id, tmp_follow=True)
         self.to_follow.remove(user_id)
+        if self.lastest_post(medias) > 10:  # older >10 days
+            # Abandon user and call self recusively.
+            self.follow_and_like()
+        else:
+            n = random.randint(4, 10)
+            print(f'Liking {n} medias from `{username}`.')
+            self.bot.like_medias(random.sample(medias, n))
+            self.follow(user_id, tmp_follow=True)
 
+
+    def lastest_post(self, medias):
+        media = self.bot.get_media_info(medias[0])
+        date = media[0]['created_at_utc']
+        age_in_days = (time.time() - date) / 3600 / 24
+        return age_in_days
 
     @print_starting
     def track_followers(self):
