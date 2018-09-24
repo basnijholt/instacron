@@ -44,7 +44,8 @@ def read_config(cfg='~/.config/instacron/config'):
         print(f"\nReading config file `{cfg}` didn't work")
         user = input('Enter username and hit enter\n')
         pw = getpass.getpass('Enter password and hit enter\n')
-        save_config = input(f"Save to config file `{cfg}` (y/N)? ").lower() == 'y'
+        save_config = input(
+            f"Save to config file `{cfg}` (y/N)? ").lower() == 'y'
         if save_config:
             os.makedirs(os.path.dirname(_cfg), exist_ok=True)
             with open(_cfg, 'w') as f:
@@ -66,7 +67,7 @@ def get_all_photos(uploaded_file, photo_folder):
 
 def choose_random_photo(uploaded_file, photo_folder):
     photos = get_all_photos(uploaded_file, photo_folder)
-    photo = random.choice(photos) # choose a random photo
+    photo = random.choice(photos)  # choose a random photo
     return photo
 
 
@@ -158,7 +159,8 @@ def get_photo_info(photo):
 
 
 def _get_random_quote():
-    response = get('http://api.forismatic.com/api/1.0/?method=getQuote&format=json&lang=en')
+    response = get(
+        'http://api.forismatic.com/api/1.0/?method=getQuote&format=json&lang=en')
     response = loads(response.text)
     quote = response['quoteText']
     author = response['quoteAuthor']
@@ -196,7 +198,7 @@ def get_camera_settings(fname):
 
 
 def get_caption(fname):
-    city, country, date  = get_photo_info(fname)
+    city, country, date = get_photo_info(fname)
     continent = continents[country] if country in continents else None
     flag = emoji.emojize(f":{country.replace(' ', '_')}:")
 
@@ -206,18 +208,48 @@ def get_caption(fname):
     caption += ' on {:%d %B %Y}. '.format(date)
 
     # Advertize the Python script
-    caption += '#instacron ' + emoji.emojize(':snake:') + ' www.instacron.nijho.lt'
-    spacer = '\n' + 3*'.\n'
+    caption += '#instacron ' + emoji.emojize(
+        ':snake:') + ' www.instacron.nijho.lt'
+    spacer = '\n' + 3 * '.\n'
     caption += spacer + get_camera_settings(fname) + spacer
 
     # Add some more hashtags that I've seen being used
     extra_hashtags = [
-        'backpacker', 'wanderlust', 'sonya6000', 'earthoutdoors',
-        'travel', 'traveling', 'beautifuldestinations', 'earthofficial',
-        'nature', 'theglobewanderer', 'earthpix', 'earthfocus',
-        'discoverearth', 'stayandwander', 'modernoutdoors',
-        'awesome_earthpix', 'takemoreadventures', 'globetrotter',
-    ]
+        'EarthOfficial', 'adventurethatislife', 'amazing', 'art',
+        'awesome_earthpix', 'awesomeglobe', 'backpacker', 'beautiful',
+        'beautifuldestinations', 'beautyofnature', 'bhfyp', 'captures',
+        'clouds', 'colors_of_day', 'conservation', 'discoverearth',
+        'discoverglobe', 'dream_spots', 'earth', 'earth_portraits',
+        'earth_shotz', 'earthexperience', 'earthfocus', 'earthofficial',
+        'earthoutdoors', 'earthpix', 'epic_captures', 'fantastic_earth',
+        'fiftyshades_of_nature', 'getlost', 'globetrotter', 'hiking', 'hunter',
+        'ig', 'ig_countryside', 'ig_divineshots', 'ig_landscape',
+        'ig_masterpiece', 'ig_podium', 'igbest_shotz', 'igersmood',
+        'igworldglobal', 'ilovenature', 'india', 'instagood', 'instanature',
+        'jungle', 'keepitwild', 'lake', 'landscape', 'landscape_captures',
+        'landscape_hunter', 'landscape_lover', 'landscape_lovers',
+        'landscape_photography', 'landscape_specialist', 'landscapecaptures',
+        'landscapehunter', 'landscapelover', 'landscapelovers',
+        'landscapephoto', 'landscapephotography', 'landscapephotomag',
+        'landscapeporn', 'landscapes', 'landscapestyles', 'landscapestyles_gf',
+        'love', 'lover', 'lovers', 'majestic_earth', 'marvelshots',
+        'master_shots', 'modernoutdoors', 'mountain', 'mountains', 'mthrworld',
+        'nakedplanet', 'natgeoadventure', 'natgeohub', 'natgeolandscape',
+        'natgeotravelpic', 'natgeowild', 'natgeoyourshot',
+        'nationalgeographic', 'nature', 'nature_brilliance', 'nature_lovers',
+        'nature_sultans', 'nature_wizards', 'natureaddict', 'naturegram',
+        'naturehippys', 'naturelove', 'naturelover', 'naturelovers',
+        'natureonly', 'natureperfection', 'naturephotography', 'naturesbeauty',
+        'naturewalk', 'ourplanetdaily', 'photo', 'photography',
+        'photooftheday', 'picoftheday', 'pixel_ig', 'places', 'places_wow',
+        'planet', 'pocket_world', 'roamtheplanet', 'scenery', 'sea', 'seekers',
+        'shots', 'sky', 'sonya6000', 'sonyalpha', 'sony', 'specialist',
+        'splendid', 'splendid_earth', 'stayandwander', 'stunning_shots', 'sun',
+        'sunset', 'sunsets', 'takemoreadventures', 'theglobewanderer',
+        'theworldshotz', 'trapping_tones', 'travel', 'travelblogger',
+        'travelgram', 'traveling', 'traveller', 'travelphotography', 'tree',
+        'trees', 'trip', 'view', 'visual_heaven', 'visualambassadors',
+        'wanderlust', 'wildlifephotography']
     random.shuffle(extra_hashtags)
     for key in [country, continent]:
         if key:
@@ -256,10 +288,10 @@ def entropy(data):
 def crop(x, y, data, w, h):
     x = int(x)
     y = int(y)
-    return data[y:y+h, x:x+w]
+    return data[y:y + h, x:x + w]
 
 
-def get_highest_entropy(img, min_ratio=4/5, max_ratio=90/47):
+def get_highest_entropy(img, min_ratio=4 / 5, max_ratio=90 / 47):
     from scipy.optimize import minimize_scalar
     w, h = img.size
     data = np.array(img)
@@ -267,12 +299,14 @@ def get_highest_entropy(img, min_ratio=4/5, max_ratio=90/47):
     if ratio > max_ratio:
         # Too wide
         w_max = int(max_ratio * h)
-        _crop = lambda x: crop(x, y=0, data=data, w=w_max, h=h)
+
+        def _crop(x): return crop(x, y=0, data=data, w=w_max, h=h)
         xy_max = w - w_max
     else:
         # Too narrow
         h_max = int(w / min_ratio)
-        _crop = lambda y: crop(x=0, y=y, data=data, w=w, h=h_max)
+
+        def _crop(y): return crop(x=0, y=y, data=data, w=w, h=h_max)
         xy_max = h - h_max
     x = minimize_scalar(lambda xy: -entropy(_crop(xy)),
                         bounds=(0, xy_max),
@@ -328,6 +362,7 @@ def main():
     else:
         print(colored(f'Upload of {photo_base} failed.', 'red'))
     bot.logout()
+
 
 if __name__ == "__main__":
     main()
