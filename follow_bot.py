@@ -131,7 +131,6 @@ class MyBot:
             self.tmp_following.append(f'{user_id},{time.time()}')
         self.to_follow.remove(user_id)
 
-    @stop_spamming
     def get_user_info(self, user_id):
         if user_id not in self.user_infos:
             print(f'{user_id} is not in the user_info database.')
