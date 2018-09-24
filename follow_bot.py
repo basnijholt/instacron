@@ -259,11 +259,12 @@ class MyBot:
         user_id = self.to_follow.random()
         while self.get_user_info(user_id)['is_private']:
             user_id = self.to_follow.random()
+
         username = self.get_user_info(user_id)['username']
         medias = self.bot.get_user_medias(user_id)
         self.to_follow.remove(user_id)
-        if self.lastest_post(medias) < 10:  # days
-            n = random.randint(4, 10)
+        if medias and self.lastest_post(medias) < 21:  # days
+            n = min(random.randint(4, 10), len(medias))
             print(f'Liking {n} medias from `{username}`.')
             self.bot.like_medias(random.sample(medias, n))
             self.follow(user_id, tmp_follow=True)
@@ -273,8 +274,9 @@ class MyBot:
 
     def lastest_post(self, medias):
         media = self.bot.get_media_info(medias[0])
-        date = media[0]['created_at_utc']
+        date = media[0]['taken_at']
         age_in_days = (time.time() - date) / 3600 / 24
+        print(f'lastest post is {age_in_days} days old.')
         return age_in_days
 
     @print_starting
@@ -339,11 +341,11 @@ if __name__ == '__main__':
         time.sleep(20)
 
     while True:
-        n_per_day = 300
+        n_per_day = 100
         n_seconds = 86400 / n_per_day
         t_start = time.time()
-        if random.random() < n_seconds / (3 * 3600):
-            # Invalidate the cache every ~3 hours
+        if random.random() < n_seconds / (5 * 3600):
+            # Invalidate the cache every ~5 hours
             c.bot._followers = None
         c.track_followers()
         random.shuffle(funcs)
