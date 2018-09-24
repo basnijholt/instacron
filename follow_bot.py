@@ -53,15 +53,8 @@ def stop_spamming(f):
     def wrapper(*args, **kwargs):
         if args[0].bot.api.last_json.get('message') == 'feedback_required':
             print('The bot is spamming! Exit the program before I get banned.')
-            sys.exit(1)
+            print_sleep(3600*3) #sys.exit(1)
         return f(*args, **kwargs)
-    return wrapper
-
-
-def check_authorization(f):
-    def wrapper(*args):
-        print args[0].url
-        return f(*args)
     return wrapper
 
 
@@ -161,9 +154,13 @@ class MyBot:
     @print_starting
     def unfollow_after_time(self, days_max=2):
         user_id, t_follow = self.tmp_following.list[0].split(',')
+        i = 0 
         while time.time() - float(t_follow) > 86400 * days_max:
+            i += 1
             self.unfollow(user_id)
             user_id, t_follow = self.tmp_following.list[0].split(',')
+            if i > 10:
+                break
 
     @print_starting
     def unfollow_followers_that_are_not_friends(self):
@@ -244,8 +241,9 @@ class MyBot:
         manually_followed = set(users) - self.unfollowed.set
         to_unfollow = set(users) - manually_followed
         print(f'Going to unfollow {len(to_unfollow)} users')
-        for u in to_unfollow:
-            self.unfollow(u)
+        for i, u in enumerate(to_unfollow):
+            if i <= 15:
+                self.unfollow(u)
 
     @print_starting
     def refollow_friends(self):
