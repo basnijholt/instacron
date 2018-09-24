@@ -51,7 +51,8 @@ def print_starting(f):
 def stop_spamming(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if args[0].bot.api.last_json.get('message') == 'feedback_required':
+        last_json = args[0].bot.api.last_json
+        if last_json is not None and last_json.get('message') == 'feedback_required':
             print('The bot is spamming! Pause the program before I get banned.')
             print_sleep(3600*5)
         return f(*args, **kwargs)
