@@ -244,14 +244,14 @@ class MyBot:
         username = self.get_user_info(user_id)['username']
         medias = self.bot.get_user_medias(user_id)
         self.to_follow.remove(user_id)
-        if self.lastest_post(medias) > 10:  # older >10 days
-            # Abandon user and call self recusively.
-            self.follow_and_like()
-        else:
+        if self.lastest_post(medias) < 10:  # days
             n = random.randint(4, 10)
             print(f'Liking {n} medias from `{username}`.')
             self.bot.like_medias(random.sample(medias, n))
             self.follow(user_id, tmp_follow=True)
+        else:
+            # Abandon user and call self recusively.
+            self.follow_and_like()
 
 
     def lastest_post(self, medias):
