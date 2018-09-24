@@ -52,8 +52,8 @@ def stop_spamming(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         if args[0].bot.api.last_json.get('message') == 'feedback_required':
-            print('The bot is spamming! Exit the program before I get banned.')
-            print_sleep(3600*3) #sys.exit(1)
+            print('The bot is spamming! Pause the program before I get banned.')
+            print_sleep(3600*5)
         return f(*args, **kwargs)
     return wrapper
 
@@ -85,10 +85,12 @@ class MyBot:
 
     @property
     def scrapable_friends(self):
+        """Friends that I can set scrape for followers."""
         return list(self.friends.set - self.scraped_friends.set)
 
     @print_starting
     def update_to_follow(self):
+        """Update the 'to_follow' list recusively if it gets too short."""
         if len(self.to_follow.list) < 1:
             user_id = random.choice(self.scrapable_friends)
             username = self.get_user_info(user_id)['username']
@@ -108,6 +110,7 @@ class MyBot:
 
     @stop_spamming
     def unfollow(self, user_id):
+        """Unfollow 'user_id' and remove from 'self.tmp_following'."""
         try:
             print(f'Unfollowing {user_id}')
             self.bot.api.unfollow(user_id)
@@ -144,6 +147,8 @@ class MyBot:
 
     @print_starting
     def unfollow_if_max_following(self, max_following=1440):
+        """Automatically unfollow if 'max_following' is receached
+        but only 10 at the time."""
         i = 0
         while len(self.tmp_following.list) > max_following:
             i += 1
@@ -152,7 +157,9 @@ class MyBot:
                 break
 
     @print_starting
-    def unfollow_after_time(self, days_max=2):
+    def unfollow_after_time(self, days_max=4):
+        """Automatically unfollow if 'days_max' is receached
+        but only 10 at the time."""
         user_id, t_follow = self.tmp_following.list[0].split(',')
         i = 0 
         while time.time() - float(t_follow) > 86400 * days_max:
@@ -164,6 +171,7 @@ class MyBot:
 
     @print_starting
     def unfollow_followers_that_are_not_friends(self):
+        """XXX: what does this do again?"""
         followers = set(self.bot.followers)
         non_friends_followers = (followers - self.friends.set)
         followings = set(self.bot.following)
@@ -172,16 +180,20 @@ class MyBot:
             if u not in self.unfollowed.list:
                 self.unfollow(u)
 
+    @stop_spamming
     @print_starting
     def unfollow_all_non_friends(self):
+        """Unfollow EVERYONE that is not in 'self.friends.'"""
         followings = set(self.bot.following)
         unfollows = [x for x in followings if x not in self.friends.list]
         print(f'\nGoing to unfollow {len(unfollows)} "friends".')
         for u in unfollows:
             self.unfollow(u)
 
+    @stop_spamming
     @print_starting
     def unfollow_accepted_unreturned_requests(self, max_hours=1):
+        """Unfollow if a private_user accepted my request but doesn't follow back."""
         tmp_following, times = zip(*[x.split(',') for x in c.tmp_following.list])
         accepted_followings = [(u, t) for u, t in zip(tmp_following, times)
                                if u in self.bot.following and u not in self.friends.set]
@@ -198,6 +210,8 @@ class MyBot:
     @print_starting
     @stop_spamming
     def like_media_from_to_follow(self):
+        """Like media from people that are in 'self.to_follow' and
+        then remove them from the list."""
         user_id = self.to_follow.random()
         while self.get_user_info(user_id)['is_private']:
             user_id = self.to_follow.random()
@@ -223,6 +237,21 @@ class MyBot:
         self.bot.like_medias(picked_medias)
 
     @print_starting
+    @stop_spamming
+    def follow_and_like(self):
+        user_id = self.to_follow.random()
+        while self.get_user_info(user_id)['is_private']:
+            user_id = self.to_follow.random()
+        n = random.randint(4, 10)
+        username = self.get_user_info(user_id)['username']
+        print(f'Liking {n} medias from `{username}`.')
+        medias = self.bot.get_user_medias(user_id)
+        self.bot.like_medias(random.sample(medias, n))
+        self.follow(user_id, tmp_follow=True)
+        self.to_follow.remove(user_id)
+
+
+    @print_starting
     def track_followers(self):
         try:
             n_followers_old = int(self.n_followers.list[-1].split(',')[0])
@@ -234,8 +263,8 @@ class MyBot:
 
     @print_starting
     def unfollow_failed_unfollows(self):
-        """This will unfollow users that were already unfollowed
-        but something has gone wrong."""
+        """This will unfollow users that were already supposed to be
+        unfollowed but something has gone wrong. Maximum 15 unfollows per call."""
         tmp_following = [u.split(',')[0] for u in self.tmp_following.list]
         users = set(bot.following) - set(tmp_following) - self.friends.set
         manually_followed = set(users) - self.unfollowed.set
@@ -247,6 +276,8 @@ class MyBot:
 
     @print_starting
     def refollow_friends(self):
+        """"Refollow everyone in 'self.friends' because a bug sometimes causes
+        accidental unfollows."""
         for u in self.friends.list:
             if u not in self.bot.following:
                 self.follow(u, tmp_follow=False)
@@ -262,14 +293,14 @@ if __name__ == '__main__':
     c = MyBot(bot)
     c.refollow_friends()
     funcs = [
-        c.follow_random,
+        c.follow_and_like,
         c.unfollow_if_max_following,
         c.unfollow_after_time,
         c.unfollow_accepted_unreturned_requests,
-        c.unfollow_followers_that_are_not_friends,
         c.unfollow_failed_unfollows,
-        c.like_media_from_to_follow,
-        c.like_media_from_nonfollowers,
+        # c.unfollow_followers_that_are_not_friends,
+        # c.like_media_from_to_follow,
+        # c.like_media_from_nonfollowers,
     ]
 
     to_unfollow = utils.file('to_unfollow.txt')
