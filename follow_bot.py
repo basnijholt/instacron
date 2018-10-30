@@ -31,7 +31,8 @@ def read_config(cfg='~/.config/instacron/config'):
         print(f"\nReading config file `{cfg}` didn't work")
         user = input('Enter username and hit enter\n')
         pw = getpass.getpass('Enter password and hit enter\n')
-        save_config = input(f"Save to config file `{cfg}` (y/N)? ").lower() == 'y'
+        save_config = input(
+            f"Save to config file `{cfg}` (y/N)? ").lower() == 'y'
         if save_config:
             os.makedirs(os.path.dirname(_cfg), exist_ok=True)
             with open(_cfg, 'w') as f:
@@ -41,6 +42,7 @@ def read_config(cfg='~/.config/instacron/config'):
 
 def print_starting(f):
     from huepy import green, bold
+
     @wraps(f)
     def wrapper(*args, **kwargs):
         print(green(bold(f'\n\nStarting with `{f.__name__}`.')))
@@ -52,9 +54,10 @@ def stop_spamming(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         last_json = args[0].bot.api.last_json
-        if last_json is not None and last_json.get('message') == 'feedback_required':
+        if last_json is not None and last_json.get(
+                'message') == 'feedback_required':
             print('The bot is spamming! Pause the program before I get banned.')
-            print_sleep(3600*5)
+            print_sleep(3600 * 5)
         return f(*args, **kwargs)
     return wrapper
 
@@ -73,11 +76,17 @@ def print_sleep(t):
 class MyBot:
     bot = attr.ib()
     friends = attr.ib(default="config/friends.txt", converter=utils.file)
-    tmp_following = attr.ib(default='config/tmp_following.txt', converter=utils.file)
+    tmp_following = attr.ib(
+        default='config/tmp_following.txt',
+        converter=utils.file)
     unfollowed = attr.ib(default='config/unfollowed.txt', converter=utils.file)
     to_follow = attr.ib(default='config/to_follow.txt', converter=utils.file)
-    scraped_friends = attr.ib(default='config/scraped_friends.txt', converter=utils.file)
-    n_followers = attr.ib(default='config/n_followers.txt', converter=utils.file)
+    scraped_friends = attr.ib(
+        default='config/scraped_friends.txt',
+        converter=utils.file)
+    n_followers = attr.ib(
+        default='config/n_followers.txt',
+        converter=utils.file)
     user_infos = attr.ib(default='config/user_infos', converter=Cache)
     skipped = attr.ib(default='skipped.txt', converter=utils.file)
 
@@ -136,7 +145,11 @@ class MyBot:
         if user_id not in self.user_infos:
             print(f'{user_id} is not in the user_info database.')
             user_info = self.bot.get_user_info(user_id)
-            self.user_infos.set(user_id, user_info, expire=86400*7, tag='user_info')
+            self.user_infos.set(
+                user_id,
+                user_info,
+                expire=86400 * 7,
+                tag='user_info')
         return self.user_infos[user_id]
 
     @stop_spamming
@@ -161,7 +174,7 @@ class MyBot:
         """Automatically unfollow if 'days_max' is receached
         but only 10 at the time."""
         user_id, t_follow = self.tmp_following.list[0].split(',')
-        i = 0 
+        i = 0
         while time.time() - float(t_follow) > 86400 * days_max:
             i += 1
             self.unfollow(user_id)
@@ -194,17 +207,21 @@ class MyBot:
     @print_starting
     def unfollow_accepted_unreturned_requests(self, max_hours=1):
         """Unfollow if a private_user accepted my request but doesn't follow back."""
-        tmp_following, times = zip(*[x.split(',') for x in c.tmp_following.list])
-        accepted_followings = [(u, t) for u, t in zip(tmp_following, times)
-                               if u in self.bot.following and u not in self.friends.set]
+        tmp_following, times = zip(*[x.split(',')
+                                     for x in c.tmp_following.list])
+        accepted_followings = [
+            (u, t) for u, t in zip(tmp_following, times)
+            if u in self.bot.following and u not in self.friends.set]
         for u, t in accepted_followings:
             info = self.get_user_info(u)
             try:
-                if info['is_private'] and time.time() - t > 3600 * float(max_hours):
-                    print(f'\nUser {info["username"]} is private and accepted my '
-                          'request, but did not follow back in {max_hours} hours.')
+                if info['is_private'] and time.time(
+                ) - t > 3600 * float(max_hours):
+                    print(
+                        f'\nUser {info["username"]} is private and accepted my '
+                        'request, but did not follow back in {max_hours} hours.')
                     self.unfollow(u)
-            except:
+            except BaseException:
                 pass
 
     @print_starting
@@ -254,7 +271,6 @@ class MyBot:
             # Abandon user and call self recusively.
             self.follow_and_like()
 
-
     def lastest_post(self, medias):
         media = self.bot.get_media_info(medias[0])
         date = media[0]['created_at_utc']
@@ -298,7 +314,9 @@ class MyBot:
 
 
 if __name__ == '__main__':
-    bot = Bot(max_following_to_followers_ratio=20, max_following_to_follow=5000)
+    bot = Bot(
+        max_following_to_followers_ratio=20,
+        max_following_to_follow=5000)
     bot.api.login(**read_config(), use_cookie=True)
     c = MyBot(bot)
     c.refollow_friends()
