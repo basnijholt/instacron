@@ -11,6 +11,7 @@ import time
 import attr
 from diskcache import Cache
 from instabot import Bot, utils
+from huepy import green, bold
 
 
 def read_config(cfg='~/.config/instacron/config'):
@@ -42,7 +43,6 @@ def read_config(cfg='~/.config/instacron/config'):
 
 def print_starting(f):
     from huepy import green, bold
-
     @wraps(f)
     def wrapper(*args, **kwargs):
         print(green(bold(f'\n\nStarting with `{f.__name__}`.')))
@@ -256,9 +256,18 @@ class MyBot:
     @print_starting
     @stop_spamming
     def follow_and_like(self):
+        if self.bot.reached_limit('likes'):
+            print(green(bold(f'\nOut of likes, pausing for 10 minutes.')))
+            self.print_sleep(600)
+            return
         user_id = self.to_follow.random()
-        while self.get_user_info(user_id)['is_private']:
-            user_id = self.to_follow.random()
+        busy = True
+        while busy:
+            if self.get_user_info(user_id)['is_private'] or not self.bot.check_user(user_id):
+                user_id = self.to_follow.random()
+                self.to_follow.remove(user_id)
+            else:
+                busy = False
 
         username = self.get_user_info(user_id)['username']
         medias = self.bot.get_user_medias(user_id)
@@ -341,7 +350,7 @@ if __name__ == '__main__':
         time.sleep(20)
 
     while True:
-        n_per_day = 100
+        n_per_day = 200
         n_seconds = 86400 / n_per_day
         t_start = time.time()
         if random.random() < n_seconds / (5 * 3600):
