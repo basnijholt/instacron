@@ -11,3 +11,4 @@ attrs
 exifread
 geocoder
 diskcache
+wikiquotes
