@@ -2,6 +2,7 @@
 
 import atexit
 from collections import OrderedDict, defaultdict
+from contextlib import suppress
 from functools import wraps
 import random
 import pickle
@@ -121,22 +122,24 @@ class MyBot:
     @stop_spamming
     def unfollow(self, user_id):
         """Unfollow 'user_id' and remove from 'self.tmp_following'."""
-        try:
+        with suppress(Exception):
             print(f'Unfollowing {user_id}')
             self.bot.api.unfollow(user_id)
-        except Exception as e:
-            print(f'Could not find userinfo, error message: {e}')
+
         self.unfollowed.append(user_id)
-        try:
+
+        with suppress(StopIteration):
             to_remove = next(x for x in self.tmp_following.list
                              if x.split(',')[0] == user_id)
             self.tmp_following.remove(to_remove)
-        except StopIteration:
-            pass
+
+        with suppress(ValueError):
+            self.bot.following.remove(user_id)
 
     @stop_spamming
     def follow(self, user_id, tmp_follow=True):
         self.bot.follow(user_id)
+        self.bot.following.append(user_id)
         if tmp_follow and user_id not in self.skipped.list:
             self.tmp_following.append(f'{user_id},{time.time()}')
         self.to_follow.remove(user_id)
@@ -148,7 +151,7 @@ class MyBot:
             self.user_infos.set(
                 user_id,
                 user_info,
-                expire=86400 * 7,
+                expire=86400 * 60,
                 tag='user_info')
         return self.user_infos[user_id]
 
@@ -256,6 +259,7 @@ class MyBot:
     @print_starting
     @stop_spamming
     def follow_and_like(self):
+        self.update_to_follow()
         if self.bot.reached_limit('likes'):
             print(green(bold(f'\nOut of likes, pausing for 10 minutes.')))
             self.print_sleep(600)
@@ -337,9 +341,11 @@ if __name__ == '__main__':
         c.unfollow_after_time,
         c.unfollow_accepted_unreturned_requests,
         c.unfollow_failed_unfollows,
+        # c.follow_random,
         # c.unfollow_followers_that_are_not_friends,
         # c.like_media_from_to_follow,
         # c.like_media_from_nonfollowers,
+        # c.unfollow_all_non_friends,
     ]
 
     to_unfollow = utils.file('to_unfollow.txt')
