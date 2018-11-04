@@ -22,6 +22,7 @@ import parse
 import PIL.Image
 from requests import get
 from termcolor import colored
+import wikiquotes
 
 from continents import continents
 
@@ -167,7 +168,12 @@ def _get_random_quote():
     return quote
 
 
-def get_random_quote():
+def get_random_quote(from_person=True):
+    if from_person:
+        ppl = ['Hunter S. Thompson', 'Albert Einstein', 'Charles Bukowski']
+        person = random.choice(ppl)
+        return wikiquotes.random_quote(person, 'English')
+
     for _ in range(10):
         try:
             return _get_random_quote()
