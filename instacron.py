@@ -147,6 +147,9 @@ EXTRA_HASHTAGS = [
     "shots",
     "sky",
     "sonya6000",
+    "sonyA7III",
+    "A7III",
+    "A73",
     "sonyalpha",
     "sony",
     "specialist",
@@ -308,7 +311,7 @@ def get_place_hashtags(city, country):
     return hashtags
 
 
-def get_photo_info(photo):
+def get_location_caption_and_hashtags(photo):
     """All my photos are named like `854-20151121-Peru-Cusco.jpg`"""
     try:
         templates = [
@@ -324,8 +327,10 @@ def get_photo_info(photo):
                 country = d["country"]
                 city = d["city"]
                 flag = emoji.emojize(f":{country.replace(' ', '_')}:")
-                caption = f" in {country}" + (f", {city}" if city else "") + flag
-                return caption, date, get_place_hashtags(country, city)
+                city_str = f", {city}" if city else ""
+                caption = f"   Taken in {country}{city_str} on {date:%d %B %Y}." + flag
+                hashtags = get_place_hashtags(country, city)
+                return caption, hashtags
         raise Exception("Didn't find a matching template.")
     except Exception as e:
         print(e)
@@ -335,11 +340,13 @@ def get_photo_info(photo):
             country_code = address.country_code.upper()
             country = pycountry.countries.get(alpha_2=country_code).name
             flag = emoji.emojize(f":{country.replace(' ', '_')}:")
-            caption = f" in {address.address}" + flag
+            caption_part = f"in {address.address}" + flag
         except Exception as e:
             print(e)
-            caption = " somewhere" + emoji.emojize(":world_map:")
-        return caption, date, get_place_hashtags(address.country, address.city)
+            caption_part = "somewhere" + emoji.emojize(":world_map:")
+        hashtags = get_place_hashtags(address.country, address.city)
+        caption = f"   Taken {caption_part} on {date:%d %B %Y}."
+        return caption, hashtags
 
 
 def _get_random_quote():
@@ -391,13 +398,9 @@ def get_camera_settings(fname):
 
 
 def get_caption(fname):
-    location_caption, date, location_hashtags = get_photo_info(fname)
+    location_caption, location_hashtags = get_location_caption_and_hashtags(fname)
 
-    caption = (
-        random_emoji()
-        + random_emoji()
-        + f"   Taken{location_caption} on {date:%d %B %Y}. "
-    )
+    caption = random_emoji() + random_emoji() + location_caption
 
     # Advertize the Python script
     caption += "#instacron " + emoji.emojize(":snake:") + " www.instacron.nijho.lt"
@@ -491,6 +494,11 @@ def main():
         default=None,
         help="filename of the photo, random if empty.",
     )
+    parser.add_argument(
+        "--caption_only",
+        action='store_true',
+        help="only return the caption.",
+    )
     args = parser.parse_args()
     caption = get_random_quote()
     dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -504,23 +512,24 @@ def main():
 
     pic = fix_photo(photo)
     caption += get_caption(photo)
+    print(caption)
 
-    print(f"Uploading `{photo}` with caption:\n\n {caption}")
-    print(os.path.basename(photo))
+    if not args.caption_only:
+        print(f"Uploading `{photo}`")
+        print(os.path.basename(photo))
+        bot = instabot.Bot()
+        bot.login(**read_config())
+        upload = bot.upload_photo(pic, caption=caption)
 
-    bot = instabot.Bot()
-    bot.login(**read_config())
-    upload = bot.upload_photo(pic, caption=caption)
-
-    # After succeeding append the fname to the uploaded.txt file
-    photo_base = os.path.basename(photo)
-    if upload:
-        time.sleep(4)
-        print(colored(f"Upload of {photo_base} succeeded.", "green"))
-        append_to_uploaded_file(uploaded_file, photo_base)
-    else:
-        print(colored(f"Upload of {photo_base} failed.", "red"))
-    bot.logout()
+        # After succeeding append the fname to the uploaded.txt file
+        photo_base = os.path.basename(photo)
+        if upload:
+            time.sleep(4)
+            print(colored(f"Upload of {photo_base} succeeded.", "green"))
+            append_to_uploaded_file(uploaded_file, photo_base)
+        else:
+            print(colored(f"Upload of {photo_base} failed.", "red"))
+        bot.logout()
 
 
 if __name__ == "__main__":
