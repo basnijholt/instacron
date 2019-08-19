@@ -12,3 +12,4 @@ exifread
 geocoder
 diskcache
 wikiquotes
+pycountry

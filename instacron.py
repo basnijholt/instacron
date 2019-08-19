@@ -18,6 +18,7 @@ import geocoder
 import instabot
 import numpy as np
 import parse
+import pycountry
 import PIL.Image
 import wikiquotes
 from instabot.api.api_photo import compatible_aspect_ratio, get_image_size
@@ -25,6 +26,159 @@ from requests import get
 from termcolor import colored
 
 from continents import continents
+
+# Add some more hashtags that I've seen being used
+EXTRA_HASHTAGS = [
+    "EarthOfficial",
+    "adventurethatislife",
+    "amazing",
+    "art",
+    "awesome_earthpix",
+    "awesomeglobe",
+    "backpacker",
+    "beautiful",
+    "beautifuldestinations",
+    "beautyofnature",
+    "bhfyp",
+    "captures",
+    "clouds",
+    "colors_of_day",
+    "conservation",
+    "discoverearth",
+    "discoverglobe",
+    "dream_spots",
+    "earth",
+    "earth_portraits",
+    "earth_shotz",
+    "earthexperience",
+    "earthfocus",
+    "earthofficial",
+    "earthoutdoors",
+    "earthpix",
+    "epic_captures",
+    "fantastic_earth",
+    "fiftyshades_of_nature",
+    "getlost",
+    "globetrotter",
+    "hiking",
+    "hunter",
+    "ig",
+    "ig_countryside",
+    "ig_divineshots",
+    "ig_landscape",
+    "ig_masterpiece",
+    "ig_podium",
+    "igbest_shotz",
+    "igersmood",
+    "igworldglobal",
+    "ilovenature",
+    "india",
+    "instagood",
+    "instanature",
+    "jungle",
+    "keepitwild",
+    "lake",
+    "landscape",
+    "landscape_captures",
+    "landscape_hunter",
+    "landscape_lover",
+    "landscape_lovers",
+    "landscape_photography",
+    "landscape_specialist",
+    "landscapecaptures",
+    "landscapehunter",
+    "landscapelover",
+    "landscapelovers",
+    "landscapephoto",
+    "landscapephotography",
+    "landscapephotomag",
+    "landscapeporn",
+    "landscapes",
+    "landscapestyles",
+    "landscapestyles_gf",
+    "love",
+    "lover",
+    "lovers",
+    "majestic_earth",
+    "marvelshots",
+    "master_shots",
+    "modernoutdoors",
+    "mountain",
+    "mountains",
+    "mthrworld",
+    "nakedplanet",
+    "natgeoadventure",
+    "natgeohub",
+    "natgeolandscape",
+    "natgeotravelpic",
+    "natgeowild",
+    "natgeoyourshot",
+    "nationalgeographic",
+    "nature",
+    "nature_brilliance",
+    "nature_lovers",
+    "nature_sultans",
+    "nature_wizards",
+    "natureaddict",
+    "naturegram",
+    "naturehippys",
+    "naturelove",
+    "naturelover",
+    "naturelovers",
+    "natureonly",
+    "natureperfection",
+    "naturephotography",
+    "naturesbeauty",
+    "naturewalk",
+    "ourplanetdaily",
+    "photo",
+    "photography",
+    "photooftheday",
+    "picoftheday",
+    "pixel_ig",
+    "places",
+    "places_wow",
+    "planet",
+    "pocket_world",
+    "roamtheplanet",
+    "scenery",
+    "sea",
+    "seekers",
+    "shots",
+    "sky",
+    "sonya6000",
+    "sonyA7III",
+    "A7III",
+    "A73",
+    "sonyalpha",
+    "sony",
+    "specialist",
+    "splendid",
+    "splendid_earth",
+    "stayandwander",
+    "stunning_shots",
+    "sun",
+    "sunset",
+    "sunsets",
+    "takemoreadventures",
+    "theglobewanderer",
+    "theworldshotz",
+    "trapping_tones",
+    "travel",
+    "travelblogger",
+    "travelgram",
+    "traveling",
+    "traveller",
+    "travelphotography",
+    "tree",
+    "trees",
+    "trip",
+    "view",
+    "visual_heaven",
+    "visualambassadors",
+    "wanderlust",
+    "wildlifephotography",
+]
 
 
 def read_config(cfg="~/.config/instacron/config"):
@@ -122,28 +276,42 @@ def get_lat_long_from_exif(exif):
     d, m, s = eval(exif["GPS GPSLatitude"].printable)
     lat = dms2dd(d, m, s, exif["GPS GPSLatitudeRef"].printable)
     d, m, s = eval(exif["GPS GPSLongitude"].printable)
-    long = dms2dd(d, m, s, exif["GPS GPSLongitudeRef"].printable)
-    return lat, long
+    long_ = dms2dd(d, m, s, exif["GPS GPSLongitudeRef"].printable)
+    return lat, long_
 
 
 def get_info_from_exif(fname):
     with open(fname, "rb") as f:
         tags = exifread.process_file(f)
     try:
-        lat, long = get_lat_long_from_exif(tags)
-        r = geocoder.google([lat, long], method="reverse").current_result
-        while r is None:
+        lat, long_ = get_lat_long_from_exif(tags)
+        for i in range(10):
+            r = geocoder.osm([lat, long_], method="reverse").current_result
+            if r is not None:
+                break
             time.sleep(0.1)
-            r = geocoder.google([lat, long], method="reverse").current_result
-        city = r.city if r.city is not None else r.county
-        country = r.country_long
+        address = r
     except Exception:
-        city, country = None, None
+        address = None
     date = dateutil.parser.parse(tags["Image DateTime"].printable)
-    return city, country, date
+    return address, date
 
 
-def get_photo_info(photo):
+def get_place_hashtags(city, country):
+    hashtags = []
+    continent = continents.get(country)
+    for key in [country, continent]:
+        if key:
+            key = key.replace(" ", "").lower()
+            hashtags += [f"visit{key}", key]
+    if city:
+        hashtags.append(city.replace(" ", "").lower())
+    if country:
+        hashtags.append(f'ig_{country.replace(" ", "").lower()}')
+    return hashtags
+
+
+def get_location_caption_and_hashtags(photo):
     """All my photos are named like `854-20151121-Peru-Cusco.jpg`"""
     try:
         templates = [
@@ -156,12 +324,29 @@ def get_photo_info(photo):
             if parsed is not None:
                 d = parsed.named
                 date = dateutil.parser.parse(d["date"])
-                return d["city"], d["country"], date
+                country = d["country"]
+                city = d["city"]
+                flag = emoji.emojize(f":{country.replace(' ', '_')}:")
+                city_str = f", {city}" if city else ""
+                caption = f"   Taken in {country}{city_str} on {date:%d %B %Y}." + flag
+                hashtags = get_place_hashtags(country, city)
+                return caption, hashtags
         raise Exception("Didn't find a matching template.")
     except Exception as e:
         print(e)
         print("Getting info from EXIF data.")
-        return get_info_from_exif(photo)
+        address, date = get_info_from_exif(photo)
+        try:
+            country_code = address.country_code.upper()
+            country = pycountry.countries.get(alpha_2=country_code).name
+            flag = emoji.emojize(f":{country.replace(' ', '_')}:")
+            caption_part = f"in {address.address}" + flag
+        except Exception as e:
+            print(e)
+            caption_part = "somewhere" + emoji.emojize(":world_map:")
+        hashtags = get_place_hashtags(address.country, address.city)
+        caption = f"   Taken {caption_part} on {date:%d %B %Y}."
+        return caption, hashtags
 
 
 def _get_random_quote():
@@ -213,178 +398,18 @@ def get_camera_settings(fname):
 
 
 def get_caption(fname):
-    city, country, date = get_photo_info(fname)
-    continent = continents[country] if country in continents else None
-    flag = emoji.emojize(f":{country.replace(' ', '_')}:")
+    location_caption, location_hashtags = get_location_caption_and_hashtags(fname)
 
-    # Add two random emojis, the date, and the location info with flag emoji
-    caption = random_emoji() + random_emoji() + "   Taken"
-    caption += f" in {country}" + (f", {city}" if city else "") + flag
-    caption += f" on {date:%d %B %Y}. "
+    caption = random_emoji() + random_emoji() + location_caption
 
     # Advertize the Python script
     caption += "#instacron " + emoji.emojize(":snake:") + " www.instacron.nijho.lt"
     spacer = "\n" + 3 * ".\n"
     caption += spacer + get_camera_settings(fname) + spacer
 
-    # Add some more hashtags that I've seen being used
-    extra_hashtags = [
-        "EarthOfficial",
-        "adventurethatislife",
-        "amazing",
-        "art",
-        "awesome_earthpix",
-        "awesomeglobe",
-        "backpacker",
-        "beautiful",
-        "beautifuldestinations",
-        "beautyofnature",
-        "bhfyp",
-        "captures",
-        "clouds",
-        "colors_of_day",
-        "conservation",
-        "discoverearth",
-        "discoverglobe",
-        "dream_spots",
-        "earth",
-        "earth_portraits",
-        "earth_shotz",
-        "earthexperience",
-        "earthfocus",
-        "earthofficial",
-        "earthoutdoors",
-        "earthpix",
-        "epic_captures",
-        "fantastic_earth",
-        "fiftyshades_of_nature",
-        "getlost",
-        "globetrotter",
-        "hiking",
-        "hunter",
-        "ig",
-        "ig_countryside",
-        "ig_divineshots",
-        "ig_landscape",
-        "ig_masterpiece",
-        "ig_podium",
-        "igbest_shotz",
-        "igersmood",
-        "igworldglobal",
-        "ilovenature",
-        "india",
-        "instagood",
-        "instanature",
-        "jungle",
-        "keepitwild",
-        "lake",
-        "landscape",
-        "landscape_captures",
-        "landscape_hunter",
-        "landscape_lover",
-        "landscape_lovers",
-        "landscape_photography",
-        "landscape_specialist",
-        "landscapecaptures",
-        "landscapehunter",
-        "landscapelover",
-        "landscapelovers",
-        "landscapephoto",
-        "landscapephotography",
-        "landscapephotomag",
-        "landscapeporn",
-        "landscapes",
-        "landscapestyles",
-        "landscapestyles_gf",
-        "love",
-        "lover",
-        "lovers",
-        "majestic_earth",
-        "marvelshots",
-        "master_shots",
-        "modernoutdoors",
-        "mountain",
-        "mountains",
-        "mthrworld",
-        "nakedplanet",
-        "natgeoadventure",
-        "natgeohub",
-        "natgeolandscape",
-        "natgeotravelpic",
-        "natgeowild",
-        "natgeoyourshot",
-        "nationalgeographic",
-        "nature",
-        "nature_brilliance",
-        "nature_lovers",
-        "nature_sultans",
-        "nature_wizards",
-        "natureaddict",
-        "naturegram",
-        "naturehippys",
-        "naturelove",
-        "naturelover",
-        "naturelovers",
-        "natureonly",
-        "natureperfection",
-        "naturephotography",
-        "naturesbeauty",
-        "naturewalk",
-        "ourplanetdaily",
-        "photo",
-        "photography",
-        "photooftheday",
-        "picoftheday",
-        "pixel_ig",
-        "places",
-        "places_wow",
-        "planet",
-        "pocket_world",
-        "roamtheplanet",
-        "scenery",
-        "sea",
-        "seekers",
-        "shots",
-        "sky",
-        "sonya6000",
-        "sonyalpha",
-        "sony",
-        "specialist",
-        "splendid",
-        "splendid_earth",
-        "stayandwander",
-        "stunning_shots",
-        "sun",
-        "sunset",
-        "sunsets",
-        "takemoreadventures",
-        "theglobewanderer",
-        "theworldshotz",
-        "trapping_tones",
-        "travel",
-        "travelblogger",
-        "travelgram",
-        "traveling",
-        "traveller",
-        "travelphotography",
-        "tree",
-        "trees",
-        "trip",
-        "view",
-        "visual_heaven",
-        "visualambassadors",
-        "wanderlust",
-        "wildlifephotography",
-    ]
+    extra_hashtags = EXTRA_HASHTAGS.copy()
     random.shuffle(extra_hashtags)
-    for key in [country, continent]:
-        if key:
-            key = key.replace(" ", "").lower()
-            extra_hashtags += [f"visit{key}", key]
-    if city:
-        extra_hashtags.append(city.replace(" ", "").lower())
-    if country:
-        extra_hashtags.append(f'ig_{country.replace(" ", "").lower()}')
+    extra_hashtags += location_hashtags
     extra_hashtags = extra_hashtags[-27:]
     random.shuffle(extra_hashtags)  # both shuffles are useful
     caption += " ".join("#" + h for h in extra_hashtags)
@@ -469,6 +494,11 @@ def main():
         default=None,
         help="filename of the photo, random if empty.",
     )
+    parser.add_argument(
+        "--caption_only",
+        action='store_true',
+        help="only return the caption.",
+    )
     args = parser.parse_args()
     caption = get_random_quote()
     dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -482,23 +512,24 @@ def main():
 
     pic = fix_photo(photo)
     caption += get_caption(photo)
+    print(caption)
 
-    print(f"Uploading `{photo}` with caption:\n\n {caption}")
-    print(os.path.basename(photo))
+    if not args.caption_only:
+        print(f"Uploading `{photo}`")
+        print(os.path.basename(photo))
+        bot = instabot.Bot()
+        bot.login(**read_config())
+        upload = bot.upload_photo(pic, caption=caption)
 
-    bot = instabot.Bot()
-    bot.login(**read_config())
-    upload = bot.upload_photo(pic, caption=caption)
-
-    # After succeeding append the fname to the uploaded.txt file
-    photo_base = os.path.basename(photo)
-    if upload:
-        time.sleep(4)
-        print(colored(f"Upload of {photo_base} succeeded.", "green"))
-        append_to_uploaded_file(uploaded_file, photo_base)
-    else:
-        print(colored(f"Upload of {photo_base} failed.", "red"))
-    bot.logout()
+        # After succeeding append the fname to the uploaded.txt file
+        photo_base = os.path.basename(photo)
+        if upload:
+            time.sleep(4)
+            print(colored(f"Upload of {photo_base} succeeded.", "green"))
+            append_to_uploaded_file(uploaded_file, photo_base)
+        else:
+            print(colored(f"Upload of {photo_base} failed.", "red"))
+        bot.logout()
 
 
 if __name__ == "__main__":
