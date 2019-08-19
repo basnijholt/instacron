@@ -11,8 +11,9 @@ import os.path
 import time
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-uploaded = os.path.join(dir_path, 'uploaded.txt')
+uploaded = os.path.join(dir_path, "uploaded.txt")
 
 if time.time() - os.path.getmtime(uploaded) > 24 * 3600:
     import instacron
+
     instacron.main()

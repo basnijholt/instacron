@@ -1,33 +1,33 @@
-#!/usr/bin/env python3.6
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 
-from collections import Counter
-from glob import glob
-from json import loads
 import operator
 import os.path
 import random
 import tempfile
 import time
+from collections import Counter
+from glob import glob
+from json import loads
 
 import dateutil.parser
 import emoji
 import exifread
 import geocoder
 import instabot
-from instabot.api.api_photo import compatible_aspect_ratio, get_image_size
 import numpy as np
 import parse
 import PIL.Image
+import wikiquotes
+from instabot.api.api_photo import compatible_aspect_ratio, get_image_size
 from requests import get
 from termcolor import colored
-import wikiquotes
 
 from continents import continents
 
 
-def read_config(cfg='~/.config/instacron/config'):
+def read_config(cfg="~/.config/instacron/config"):
     """Read the config.
 
     Create a config file at `cfg` with the
@@ -36,22 +36,23 @@ def read_config(cfg='~/.config/instacron/config'):
         my_difficult_password
     """
     import os.path
+
     _cfg = os.path.expanduser(cfg)
     try:
-        with open(_cfg, 'r') as f:
-            user, pw = [s.replace('\n', '') for s in f.readlines()]
+        with open(_cfg, "r") as f:
+            user, pw = [s.replace("\n", "") for s in f.readlines()]
     except Exception:
         import getpass
+
         print(f"\nReading config file `{cfg}` didn't work")
-        user = input('Enter username and hit enter\n')
-        pw = getpass.getpass('Enter password and hit enter\n')
-        save_config = input(
-            f"Save to config file `{cfg}` (y/N)? ").lower() == 'y'
+        user = input("Enter username and hit enter\n")
+        pw = getpass.getpass("Enter password and hit enter\n")
+        save_config = input(f"Save to config file `{cfg}` (y/N)? ").lower() == "y"
         if save_config:
             os.makedirs(os.path.dirname(_cfg), exist_ok=True)
-            with open(_cfg, 'w') as f:
-                f.write(f'{user}\n{pw}')
-    return {'username': user, 'password': pw}
+            with open(_cfg, "w") as f:
+                f.write(f"{user}\n{pw}")
+    return {"username": user, "password": pw}
 
 
 def correct_ratio(photo):
@@ -59,9 +60,9 @@ def correct_ratio(photo):
 
 
 def get_all_photos(uploaded_file, photo_folder):
-    with open(uploaded_file, encoding='utf-8') as f:
+    with open(uploaded_file, encoding="utf-8") as f:
         uploaded = [line.rstrip() for line in f]
-    photos = glob(os.path.join(photo_folder, '*.jpg'))
+    photos = glob(os.path.join(photo_folder, "*.jpg"))
     photos = photos_to_upload(photos, uploaded)
     return photos
 
@@ -102,8 +103,9 @@ def photos_to_upload(photos, uploaded):
 
             # Remove the photos with the lowest count and select
             # the images with the second lowest count.
-            _photos = list({photo for photo, count in counter.items()
-                            if count == count_min})
+            _photos = list(
+                {photo for photo, count in counter.items() if count == count_min}
+            )
     else:
         # Not all photos have been uploaded yet
         _photos = [p for p in photos if os.path.basename(p) not in uploaded]
@@ -113,66 +115,70 @@ def photos_to_upload(photos, uploaded):
 def get_lat_long_from_exif(exif):
     def dms2dd(degrees, minutes, seconds, direction):
         dd = degrees + minutes / 60 + seconds / 3600
-        if direction in 'SW':
+        if direction in "SW":
             dd *= -1
         return dd
-    d, m, s = eval(exif['GPS GPSLatitude'].printable)
-    lat = dms2dd(d, m, s, exif['GPS GPSLatitudeRef'].printable)
-    d, m, s = eval(exif['GPS GPSLongitude'].printable)
-    long = dms2dd(d, m, s, exif['GPS GPSLongitudeRef'].printable)
+
+    d, m, s = eval(exif["GPS GPSLatitude"].printable)
+    lat = dms2dd(d, m, s, exif["GPS GPSLatitudeRef"].printable)
+    d, m, s = eval(exif["GPS GPSLongitude"].printable)
+    long = dms2dd(d, m, s, exif["GPS GPSLongitudeRef"].printable)
     return lat, long
 
 
 def get_info_from_exif(fname):
-    with open(fname, 'rb') as f:
+    with open(fname, "rb") as f:
         tags = exifread.process_file(f)
     try:
         lat, long = get_lat_long_from_exif(tags)
-        r = geocoder.google([lat, long], method='reverse').current_result
+        r = geocoder.google([lat, long], method="reverse").current_result
         while r is None:
             time.sleep(0.1)
-            r = geocoder.google([lat, long], method='reverse').current_result
+            r = geocoder.google([lat, long], method="reverse").current_result
         city = r.city if r.city is not None else r.county
         country = r.country_long
     except Exception:
         city, country = None, None
-    date = dateutil.parser.parse(tags['Image DateTime'].printable)
+    date = dateutil.parser.parse(tags["Image DateTime"].printable)
     return city, country, date
 
 
 def get_photo_info(photo):
     """All my photos are named like `854-20151121-Peru-Cusco.jpg`"""
     try:
-        templates = ['{i}-{date}-{country}-{city}-{rest}.jpg',
-                     '{i}-{date}-{country}-{city}.jpg']
+        templates = [
+            "{i}-{date}-{country}-{city}-{rest}.jpg",
+            "{i}-{date}-{country}-{city}.jpg",
+        ]
         parsed = None
         for template in templates:
             parsed = parse.parse(template, os.path.basename(photo))
             if parsed is not None:
                 d = parsed.named
-                date = dateutil.parser.parse(d['date'])
-                return d['city'], d['country'], date
+                date = dateutil.parser.parse(d["date"])
+                return d["city"], d["country"], date
         raise Exception("Didn't find a matching template.")
     except Exception as e:
         print(e)
-        print('Getting info from EXIF data.')
+        print("Getting info from EXIF data.")
         return get_info_from_exif(photo)
 
 
 def _get_random_quote():
     response = get(
-        'http://api.forismatic.com/api/1.0/?method=getQuote&format=json&lang=en')
+        "http://api.forismatic.com/api/1.0/?method=getQuote&format=json&lang=en"
+    )
     response = loads(response.text)
-    quote = response['quoteText']
-    author = response['quoteAuthor']
+    quote = response["quoteText"]
+    author = response["quoteAuthor"]
     return quote
 
 
 def get_random_quote(from_person=True):
     if from_person:
-        ppl = ['Hunter S. Thompson', 'Albert Einstein', 'Charles Bukowski']
+        ppl = ["Hunter S. Thompson", "Albert Einstein", "Charles Bukowski"]
         person = random.choice(ppl)
-        return wikiquotes.random_quote(person, 'English')
+        return wikiquotes.random_quote(person, "English")
 
     for _ in range(10):
         try:
@@ -184,23 +190,26 @@ def get_random_quote(from_person=True):
 
 def random_emoji():
     # Don't return a random flag (hence the `islower`)
-    emojis = [e for e, unicode in emoji.UNICODE_EMOJI.items()
-              if unicode[1].islower() and len(e) == 1]
+    emojis = [
+        e
+        for e, unicode in emoji.UNICODE_EMOJI.items()
+        if unicode[1].islower() and len(e) == 1
+    ]
     return random.choice(emojis)
 
 
 def get_camera_settings(fname):
-    with open(fname, 'rb') as f:
+    with open(fname, "rb") as f:
         tags = exifread.process_file(f)
-    brand = tags['Image Make'].printable
-    model = tags['Image Model'].printable
-    lens = tags['EXIF LensModel'].printable
-    focal_length = tags['EXIF FocalLength']
-    shutter_speed = tags['EXIF ExposureTime'].printable
-    apeture = tags['EXIF FNumber'].printable
-    iso = tags['EXIF ISOSpeedRatings'].printable
-    s = f' {brand} {model} | {focal_length} mm | ƒ/{apeture} | {shutter_speed} sec | ISO {iso}'
-    return emoji.emojize(':camera:') + "⚙: " + s
+    brand = tags["Image Make"].printable
+    model = tags["Image Model"].printable
+    lens = tags["EXIF LensModel"].printable
+    focal_length = tags["EXIF FocalLength"]
+    shutter_speed = tags["EXIF ExposureTime"].printable
+    apeture = tags["EXIF FNumber"].printable
+    iso = tags["EXIF ISOSpeedRatings"].printable
+    s = f" {brand} {model} | {focal_length} mm | ƒ/{apeture} | {shutter_speed} sec | ISO {iso}"
+    return emoji.emojize(":camera:") + "⚙: " + s
 
 
 def get_caption(fname):
@@ -209,76 +218,187 @@ def get_caption(fname):
     flag = emoji.emojize(f":{country.replace(' ', '_')}:")
 
     # Add two random emojis, the date, and the location info with flag emoji
-    caption = random_emoji() + random_emoji() + '   Taken'
-    caption += f' in {country}' + (f', {city}' if city else '') + flag
-    caption += ' on {:%d %B %Y}. '.format(date)
+    caption = random_emoji() + random_emoji() + "   Taken"
+    caption += f" in {country}" + (f", {city}" if city else "") + flag
+    caption += f" on {date:%d %B %Y}. "
 
     # Advertize the Python script
-    caption += '#instacron ' + emoji.emojize(
-        ':snake:') + ' www.instacron.nijho.lt'
-    spacer = '\n' + 3 * '.\n'
+    caption += "#instacron " + emoji.emojize(":snake:") + " www.instacron.nijho.lt"
+    spacer = "\n" + 3 * ".\n"
     caption += spacer + get_camera_settings(fname) + spacer
 
     # Add some more hashtags that I've seen being used
     extra_hashtags = [
-        'EarthOfficial', 'adventurethatislife', 'amazing', 'art',
-        'awesome_earthpix', 'awesomeglobe', 'backpacker', 'beautiful',
-        'beautifuldestinations', 'beautyofnature', 'bhfyp', 'captures',
-        'clouds', 'colors_of_day', 'conservation', 'discoverearth',
-        'discoverglobe', 'dream_spots', 'earth', 'earth_portraits',
-        'earth_shotz', 'earthexperience', 'earthfocus', 'earthofficial',
-        'earthoutdoors', 'earthpix', 'epic_captures', 'fantastic_earth',
-        'fiftyshades_of_nature', 'getlost', 'globetrotter', 'hiking', 'hunter',
-        'ig', 'ig_countryside', 'ig_divineshots', 'ig_landscape',
-        'ig_masterpiece', 'ig_podium', 'igbest_shotz', 'igersmood',
-        'igworldglobal', 'ilovenature', 'india', 'instagood', 'instanature',
-        'jungle', 'keepitwild', 'lake', 'landscape', 'landscape_captures',
-        'landscape_hunter', 'landscape_lover', 'landscape_lovers',
-        'landscape_photography', 'landscape_specialist', 'landscapecaptures',
-        'landscapehunter', 'landscapelover', 'landscapelovers',
-        'landscapephoto', 'landscapephotography', 'landscapephotomag',
-        'landscapeporn', 'landscapes', 'landscapestyles', 'landscapestyles_gf',
-        'love', 'lover', 'lovers', 'majestic_earth', 'marvelshots',
-        'master_shots', 'modernoutdoors', 'mountain', 'mountains', 'mthrworld',
-        'nakedplanet', 'natgeoadventure', 'natgeohub', 'natgeolandscape',
-        'natgeotravelpic', 'natgeowild', 'natgeoyourshot',
-        'nationalgeographic', 'nature', 'nature_brilliance', 'nature_lovers',
-        'nature_sultans', 'nature_wizards', 'natureaddict', 'naturegram',
-        'naturehippys', 'naturelove', 'naturelover', 'naturelovers',
-        'natureonly', 'natureperfection', 'naturephotography', 'naturesbeauty',
-        'naturewalk', 'ourplanetdaily', 'photo', 'photography',
-        'photooftheday', 'picoftheday', 'pixel_ig', 'places', 'places_wow',
-        'planet', 'pocket_world', 'roamtheplanet', 'scenery', 'sea', 'seekers',
-        'shots', 'sky', 'sonya6000', 'sonyalpha', 'sony', 'specialist',
-        'splendid', 'splendid_earth', 'stayandwander', 'stunning_shots', 'sun',
-        'sunset', 'sunsets', 'takemoreadventures', 'theglobewanderer',
-        'theworldshotz', 'trapping_tones', 'travel', 'travelblogger',
-        'travelgram', 'traveling', 'traveller', 'travelphotography', 'tree',
-        'trees', 'trip', 'view', 'visual_heaven', 'visualambassadors',
-        'wanderlust', 'wildlifephotography']
+        "EarthOfficial",
+        "adventurethatislife",
+        "amazing",
+        "art",
+        "awesome_earthpix",
+        "awesomeglobe",
+        "backpacker",
+        "beautiful",
+        "beautifuldestinations",
+        "beautyofnature",
+        "bhfyp",
+        "captures",
+        "clouds",
+        "colors_of_day",
+        "conservation",
+        "discoverearth",
+        "discoverglobe",
+        "dream_spots",
+        "earth",
+        "earth_portraits",
+        "earth_shotz",
+        "earthexperience",
+        "earthfocus",
+        "earthofficial",
+        "earthoutdoors",
+        "earthpix",
+        "epic_captures",
+        "fantastic_earth",
+        "fiftyshades_of_nature",
+        "getlost",
+        "globetrotter",
+        "hiking",
+        "hunter",
+        "ig",
+        "ig_countryside",
+        "ig_divineshots",
+        "ig_landscape",
+        "ig_masterpiece",
+        "ig_podium",
+        "igbest_shotz",
+        "igersmood",
+        "igworldglobal",
+        "ilovenature",
+        "india",
+        "instagood",
+        "instanature",
+        "jungle",
+        "keepitwild",
+        "lake",
+        "landscape",
+        "landscape_captures",
+        "landscape_hunter",
+        "landscape_lover",
+        "landscape_lovers",
+        "landscape_photography",
+        "landscape_specialist",
+        "landscapecaptures",
+        "landscapehunter",
+        "landscapelover",
+        "landscapelovers",
+        "landscapephoto",
+        "landscapephotography",
+        "landscapephotomag",
+        "landscapeporn",
+        "landscapes",
+        "landscapestyles",
+        "landscapestyles_gf",
+        "love",
+        "lover",
+        "lovers",
+        "majestic_earth",
+        "marvelshots",
+        "master_shots",
+        "modernoutdoors",
+        "mountain",
+        "mountains",
+        "mthrworld",
+        "nakedplanet",
+        "natgeoadventure",
+        "natgeohub",
+        "natgeolandscape",
+        "natgeotravelpic",
+        "natgeowild",
+        "natgeoyourshot",
+        "nationalgeographic",
+        "nature",
+        "nature_brilliance",
+        "nature_lovers",
+        "nature_sultans",
+        "nature_wizards",
+        "natureaddict",
+        "naturegram",
+        "naturehippys",
+        "naturelove",
+        "naturelover",
+        "naturelovers",
+        "natureonly",
+        "natureperfection",
+        "naturephotography",
+        "naturesbeauty",
+        "naturewalk",
+        "ourplanetdaily",
+        "photo",
+        "photography",
+        "photooftheday",
+        "picoftheday",
+        "pixel_ig",
+        "places",
+        "places_wow",
+        "planet",
+        "pocket_world",
+        "roamtheplanet",
+        "scenery",
+        "sea",
+        "seekers",
+        "shots",
+        "sky",
+        "sonya6000",
+        "sonyalpha",
+        "sony",
+        "specialist",
+        "splendid",
+        "splendid_earth",
+        "stayandwander",
+        "stunning_shots",
+        "sun",
+        "sunset",
+        "sunsets",
+        "takemoreadventures",
+        "theglobewanderer",
+        "theworldshotz",
+        "trapping_tones",
+        "travel",
+        "travelblogger",
+        "travelgram",
+        "traveling",
+        "traveller",
+        "travelphotography",
+        "tree",
+        "trees",
+        "trip",
+        "view",
+        "visual_heaven",
+        "visualambassadors",
+        "wanderlust",
+        "wildlifephotography",
+    ]
     random.shuffle(extra_hashtags)
     for key in [country, continent]:
         if key:
             key = key.replace(" ", "").lower()
-            extra_hashtags += [f'visit{key}', key]
+            extra_hashtags += [f"visit{key}", key]
     if city:
         extra_hashtags.append(city.replace(" ", "").lower())
     if country:
         extra_hashtags.append(f'ig_{country.replace(" ", "").lower()}')
     extra_hashtags = extra_hashtags[-27:]
     random.shuffle(extra_hashtags)  # both shuffles are useful
-    caption += ' '.join('#' + h for h in extra_hashtags)
+    caption += " ".join("#" + h for h in extra_hashtags)
 
     return caption
 
 
 def fix_photo(photo):
-    with open(photo, 'rb') as f:
+    with open(photo, "rb") as f:
         img = PIL.Image.open(f)
         img = strip_exif(img)
         if not correct_ratio(photo):
             img = get_highest_entropy(img)
-        photo = os.path.join(tempfile.gettempdir(), 'instacron.jpg')
+        photo = os.path.join(tempfile.gettempdir(), "instacron.jpg")
         img.save(photo)
     return photo
 
@@ -294,11 +414,12 @@ def entropy(data):
 def crop(x, y, data, w, h):
     x = int(x)
     y = int(y)
-    return data[y:y + h, x:x + w]
+    return data[y : y + h, x : x + w]
 
 
 def get_highest_entropy(img, min_ratio=4 / 5, max_ratio=90 / 47):
     from scipy.optimize import minimize_scalar
+
     w, h = img.size
     data = np.array(img)
     ratio = w / h
@@ -306,17 +427,21 @@ def get_highest_entropy(img, min_ratio=4 / 5, max_ratio=90 / 47):
         # Too wide
         w_max = int(max_ratio * h)
 
-        def _crop(x): return crop(x, y=0, data=data, w=w_max, h=h)
+        def _crop(x):
+            return crop(x, y=0, data=data, w=w_max, h=h)
+
         xy_max = w - w_max
     else:
         # Too narrow
         h_max = int(w / min_ratio)
 
-        def _crop(y): return crop(x=0, y=y, data=data, w=w, h=h_max)
+        def _crop(y):
+            return crop(x=0, y=y, data=data, w=w, h=h_max)
+
         xy_max = h - h_max
-    x = minimize_scalar(lambda xy: -entropy(_crop(xy)),
-                        bounds=(0, xy_max),
-                        method='bounded').x
+    x = minimize_scalar(
+        lambda xy: -entropy(_crop(xy)), bounds=(0, xy_max), method="bounded"
+    ).x
     return PIL.Image.fromarray(_crop(x))
 
 
@@ -329,22 +454,28 @@ def strip_exif(img):
 
 
 def append_to_uploaded_file(uploaded_file, photo):
-    with open(uploaded_file, 'a') as f:
-        f.write(photo + '\n')
+    with open(uploaded_file, "a") as f:
+        f.write(photo + "\n")
 
 
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description='Instacron.')
-    parser.add_argument('--fname', metavar='fname', type=str, default=None,
-                        help='filename of the photo, random if empty.')
+    parser = argparse.ArgumentParser(description="Instacron.")
+    parser.add_argument(
+        "--fname",
+        metavar="fname",
+        type=str,
+        default=None,
+        help="filename of the photo, random if empty.",
+    )
     args = parser.parse_args()
     caption = get_random_quote()
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    uploaded_file = os.path.join(dir_path, 'uploaded.txt')
+    uploaded_file = os.path.join(dir_path, "uploaded.txt")
+
     if args.fname is None:
-        photo_folder = os.path.join(dir_path, 'photos')
+        photo_folder = os.path.join(dir_path, "photos")
         photo = choose_random_photo(uploaded_file, photo_folder)
     else:
         photo = args.fname
@@ -352,7 +483,7 @@ def main():
     pic = fix_photo(photo)
     caption += get_caption(photo)
 
-    print(f'Uploading `{photo}` with caption:\n\n {caption}')
+    print(f"Uploading `{photo}` with caption:\n\n {caption}")
     print(os.path.basename(photo))
 
     bot = instabot.Bot()
@@ -363,10 +494,10 @@ def main():
     photo_base = os.path.basename(photo)
     if upload:
         time.sleep(4)
-        print(colored(f'Upload of {photo_base} succeeded.', 'green'))
+        print(colored(f"Upload of {photo_base} succeeded.", "green"))
         append_to_uploaded_file(uploaded_file, photo_base)
     else:
-        print(colored(f'Upload of {photo_base} failed.', 'red'))
+        print(colored(f"Upload of {photo_base} failed.", "red"))
     bot.logout()
 
 
