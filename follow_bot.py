@@ -1,11 +1,9 @@
 #!/usr/bin/env python3.6
 
 import atexit
-import pickle
 import random
 import sys
 import time
-from collections import OrderedDict, defaultdict
 from contextlib import suppress
 from functools import wraps
 

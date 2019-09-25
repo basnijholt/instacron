@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 
-import operator
 import os.path
 import random
 import tempfile
@@ -355,7 +354,7 @@ def _get_random_quote():
     )
     response = loads(response.text)
     quote = response["quoteText"]
-    author = response["quoteAuthor"]
+    author = response["quoteAuthor"]  # noqa: F841
     return quote
 
 
@@ -393,7 +392,7 @@ def get_camera_settings(fname):
     shutter_speed = tags["EXIF ExposureTime"].printable
     apeture = tags["EXIF FNumber"].printable
     iso = tags["EXIF ISOSpeedRatings"].printable
-    s = f" {brand} {model} | {focal_length} mm | ƒ/{apeture} | {shutter_speed} sec | ISO {iso}"
+    s = f" {brand} {model} | {lens} @ {focal_length} mm | ƒ/{apeture} | {shutter_speed} sec | ISO {iso}"
     return emoji.emojize(":camera:") + "⚙: " + s
 
 
@@ -495,9 +494,7 @@ def main():
         help="filename of the photo, random if empty.",
     )
     parser.add_argument(
-        "--caption_only",
-        action='store_true',
-        help="only return the caption.",
+        "--caption_only", action="store_true", help="only return the caption."
     )
     args = parser.parse_args()
     caption = get_random_quote()
