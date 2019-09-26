@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-
 import os.path
 import random
 import tempfile
@@ -127,7 +126,7 @@ def get_lat_long_from_exif(exif):
     return lat, long_
 
 
-def get_info_from_exif(fname):
+def _location_and_time_from_exif(fname):
     with open(fname, "rb") as f:
         tags = exifread.process_file(f)
     try:
@@ -158,42 +157,50 @@ def get_place_hashtags(city, country):
     return hashtags
 
 
+def _location_caption_from_fname(photo):
+    templates = [
+        "{i}-{date}-{country}-{city}-{rest}.jpg",
+        "{i}-{date}-{country}-{city}.jpg",
+    ]
+    parsed = None
+    for template in templates:
+        parsed = parse.parse(template, os.path.basename(photo))
+        if parsed is not None:
+            d = parsed.named
+            date = dateutil.parser.parse(d["date"])
+            country = d["country"]
+            city = d["city"]
+            flag = emoji.emojize(f":{country.replace(' ', '_')}:")
+            city_str = f", {city}" if city else ""
+            caption = f"   Taken in {country}{city_str} {flag} on {date:%d %B %Y}."
+            hashtags = get_place_hashtags(country, city)
+            return caption, hashtags
+
+
+def _location_caption_from_GPS(photo):
+    address, date = _location_and_time_from_exif(photo)
+    try:
+        country_code = address.country_code.upper()
+        country = pycountry.countries.get(alpha_2=country_code).name
+        flag = emoji.emojize(f":{country.replace(' ', '_')}:")
+        caption_part = f"in {address.address}" + flag
+    except Exception as e:
+        print(e)
+        caption_part = "somewhere" + emoji.emojize(":world_map:")
+    hashtags = get_place_hashtags(address.country, address.city)
+    caption = f"   Taken {caption_part} on {date:%d %B %Y}."
+    return caption, hashtags
+
+
 def get_location_caption_and_hashtags(photo):
     """All my photos are named like `854-20151121-Peru-Cusco.jpg`"""
     try:
-        templates = [
-            "{i}-{date}-{country}-{city}-{rest}.jpg",
-            "{i}-{date}-{country}-{city}.jpg",
-        ]
-        parsed = None
-        for template in templates:
-            parsed = parse.parse(template, os.path.basename(photo))
-            if parsed is not None:
-                d = parsed.named
-                date = dateutil.parser.parse(d["date"])
-                country = d["country"]
-                city = d["city"]
-                flag = emoji.emojize(f":{country.replace(' ', '_')}:")
-                city_str = f", {city}" if city else ""
-                caption = f"   Taken in {country}{city_str} on {date:%d %B %Y}." + flag
-                hashtags = get_place_hashtags(country, city)
-                return caption, hashtags
+        return _location_caption_from_fname(photo)
         raise Exception("Didn't find a matching template.")
     except Exception as e:
-        print(e)
+        print(colored(e, "red"))
         print("Getting info from EXIF data.")
-        address, date = get_info_from_exif(photo)
-        try:
-            country_code = address.country_code.upper()
-            country = pycountry.countries.get(alpha_2=country_code).name
-            flag = emoji.emojize(f":{country.replace(' ', '_')}:")
-            caption_part = f"in {address.address}" + flag
-        except Exception as e:
-            print(e)
-            caption_part = "somewhere" + emoji.emojize(":world_map:")
-        hashtags = get_place_hashtags(address.country, address.city)
-        caption = f"   Taken {caption_part} on {date:%d %B %Y}."
-        return caption, hashtags
+        return _location_caption_from_GPS(photo)
 
 
 def _get_random_quote():
@@ -206,10 +213,9 @@ def _get_random_quote():
     return quote
 
 
-def get_random_quote(from_person=True):
-    if from_person:
-        ppl = ["Hunter S. Thompson", "Albert Einstein", "Charles Bukowski"]
-        person = random.choice(ppl)
+def get_random_quote(from_person=None):
+    if from_person is not None:
+        person = random.choice(from_person)
         return wikiquotes.random_quote(person, "English")
 
     for _ in range(10):
@@ -269,7 +275,7 @@ def prepare_and_fix_photo(photo):
         img = PIL.Image.open(f)
         img = strip_exif(img)
         if not correct_ratio(photo):
-            img = get_highest_entropy(img)
+            img = crop_maximize_entropy(img)
         photo = os.path.join(tempfile.gettempdir(), "instacron.jpg")
         img.save(photo)
     return photo
@@ -289,31 +295,29 @@ def crop(x, y, data, w, h):
     return data[y : y + h, x : x + w]
 
 
-def get_highest_entropy(img, min_ratio=4 / 5, max_ratio=90 / 47):
+def crop_maximize_entropy(img, min_ratio=4 / 5, max_ratio=90 / 47):
     from scipy.optimize import minimize_scalar
 
     w, h = img.size
     data = np.array(img)
     ratio = w / h
-    if ratio > max_ratio:
-        # Too wide
+    if ratio > max_ratio:  # Too wide
         w_max = int(max_ratio * h)
 
         def _crop(x):
             return crop(x, y=0, data=data, w=w_max, h=h)
 
         xy_max = w - w_max
-    else:
-        # Too narrow
+    else:  # Too narrow
         h_max = int(w / min_ratio)
 
         def _crop(y):
             return crop(x=0, y=y, data=data, w=w, h=h_max)
 
         xy_max = h - h_max
-    x = minimize_scalar(
-        lambda xy: -_entropy(_crop(xy)), bounds=(0, xy_max), method="bounded"
-    ).x
+
+    to_minimize = lambda xy: -_entropy(_crop(xy))  # noqa: E731
+    x = minimize_scalar(to_minimize, bounds=(0, xy_max), method="bounded").x
     return PIL.Image.fromarray(_crop(x))
 
 
@@ -345,7 +349,9 @@ def main():
         "--caption_only", action="store_true", help="only return the caption."
     )
     args = parser.parse_args()
-    caption = get_random_quote()
+    caption = get_random_quote(
+        ["Hunter S. Thompson", "Albert Einstein", "Charles Bukowski"]
+    )
     dir_path = os.path.dirname(os.path.realpath(__file__))
     uploaded_file = os.path.join(dir_path, "uploaded.txt")
 
@@ -369,7 +375,7 @@ def main():
         # After succeeding append the fname to the uploaded.txt file
         photo_base = os.path.basename(photo)
         if upload:
-            time.sleep(4)
+            time.sleep(4)  # XXX: why this?
             print(colored(f"Upload of {photo_base} succeeded.", "green"))
             append_to_uploaded_file(uploaded_file, photo_base)
         else:
