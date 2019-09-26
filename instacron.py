@@ -264,7 +264,7 @@ def get_caption(fname):
     return caption
 
 
-def fix_photo(photo):
+def prepare_and_fix_photo(photo):
     with open(photo, "rb") as f:
         img = PIL.Image.open(f)
         img = strip_exif(img)
@@ -275,7 +275,7 @@ def fix_photo(photo):
     return photo
 
 
-def entropy(data):
+def _entropy(data):
     """Calculate the entropy of an image"""
     hist = np.array(PIL.Image.fromarray(data).histogram())
     hist = hist / hist.sum()
@@ -312,7 +312,7 @@ def get_highest_entropy(img, min_ratio=4 / 5, max_ratio=90 / 47):
 
         xy_max = h - h_max
     x = minimize_scalar(
-        lambda xy: -entropy(_crop(xy)), bounds=(0, xy_max), method="bounded"
+        lambda xy: -_entropy(_crop(xy)), bounds=(0, xy_max), method="bounded"
     ).x
     return PIL.Image.fromarray(_crop(x))
 
@@ -355,7 +355,7 @@ def main():
     else:
         photo = args.fname
 
-    pic = fix_photo(photo)
+    pic = prepare_and_fix_photo(photo)
     caption += get_caption(photo)
     print(caption)
 
