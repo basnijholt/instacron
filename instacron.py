@@ -19,12 +19,13 @@ import numpy as np
 import parse
 import PIL.Image
 import pycountry
+import requests
 import wikiquotes
 from instabot.api.api_photo import compatible_aspect_ratio, get_image_size
-from requests import get
 from termcolor import colored
 
 from continents import continents
+from hashtags import EXTRA_HASHTAGS
 
 
 def read_config(cfg="~/.config/instacron/config"):
@@ -196,7 +197,7 @@ def get_location_caption_and_hashtags(photo):
 
 
 def _get_random_quote():
-    response = get(
+    response = requests.get(
         "http://api.forismatic.com/api/1.0/?method=getQuote&format=json&lang=en"
     )
     response = loads(response.text)
@@ -244,8 +245,6 @@ def get_camera_settings(fname):
 
 
 def get_caption(fname):
-    from hashtags import EXTRA_HASHTAGS
-
     location_caption, location_hashtags = get_location_caption_and_hashtags(fname)
 
     caption = random_emoji() + random_emoji() + location_caption
