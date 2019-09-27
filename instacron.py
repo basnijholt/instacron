@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import json
 import os.path
 import random
 import tempfile
 import time
 from collections import Counter
 from glob import glob
-from json import loads
 
 import dateutil.parser
 import emoji
@@ -20,7 +20,6 @@ import PIL.Image
 import pycountry
 import requests
 import wikiquotes
-from instabot.api.api_photo import compatible_aspect_ratio, get_image_size
 from termcolor import colored
 
 from continents import continents
@@ -56,6 +55,8 @@ def read_config(cfg="~/.config/instacron/config"):
 
 
 def correct_ratio(photo):
+    from instabot.api.api_photo import compatible_aspect_ratio, get_image_size
+
     return compatible_aspect_ratio(get_image_size(photo))
 
 
@@ -209,7 +210,7 @@ def _get_random_quote():
     response = requests.get(
         "http://api.forismatic.com/api/1.0/?method=getQuote&format=json&lang=en"
     )
-    response = loads(response.text)
+    response = json.loads(response.text)
     quote = response["quoteText"]
     author = response["quoteAuthor"]  # noqa: F841
     return quote
