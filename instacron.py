@@ -195,8 +195,10 @@ def _location_caption_from_GPS(photo):
 def get_location_caption_and_hashtags(photo):
     """All my photos are named like `854-20151121-Peru-Cusco.jpg`"""
     try:
-        return _location_caption_from_fname(photo)
-        raise Exception("Didn't find a matching template.")
+        location = _location_caption_from_fname(photo)
+        if location is None:
+            raise Exception("Didn't find a matching template.")
+        return location
     except Exception as e:
         print(colored(e, "red"))
         print("Getting info from EXIF data.")
